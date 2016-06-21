@@ -1,17 +1,18 @@
+###################
 #basic git commands
+###################
 
-
-#add repo
-git remote add origin https://github.com/asaffa/EMPHASIS.git
+#clone repo
+git clone https://github.com/asaffa/EMPHASIS.git
 
 #get latest
 git pull
 
-#add new files in local copy
+#add new files (local)
 git add -A .
 
 #commit changes
 git commit -a -m 'meffil latest & analysis plan & git commands'
 
-#push changes to repo master branch
+#push changes to repo master branch (remote)
 git push -u origin master
