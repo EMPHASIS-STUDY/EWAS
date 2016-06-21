@@ -1,0 +1,22 @@
+#git commands
+
+#initial setup
+git init
+git add EPIC_analysis/meffil/README.md
+git commit -m "init commit"
+git config --global user.name "asaffa"
+git config --global user.email ayden.saffari@gmail.com
+git commit --amend --reset-author
+git remote add origin https://github.com/asaffa/EMPHASIS.git
+git push -u origin master
+
+#clone repo
+git clone --bare https://github.com/perishky/meffil
+git push --mirror https://github.com/asaffa/EMPHASIS.git
+
+#get latest
+git pull
+
+#commit latest changes
+git commit -a -m "init commit"
+git push -u origin master
