@@ -1,5 +1,8 @@
 #basic git commands
 
+#config
+git config --global user.name "Your Name"
+git config --global user.email you@example.com
 
 #add repo
 git remote add origin https://github.com/asaffa/EMPHASIS.git

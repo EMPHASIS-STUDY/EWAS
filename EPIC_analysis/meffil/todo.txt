@@ -1,15 +1,13 @@
-Document more!
+1. Add new method for estimating genomic inflation.
 
-Concept of "featurset", "manifest", "chip" and "feature" vs "probe"
+Maarten M. van Iterson, Erik W. van Zwet, The Bios Consortium, P. Eline Slagboom, Bastiaan T. Heijmans. Controlling bias and inflation in epigenome- and transcriptome-wide association studies using the empirical null distribution. 
+http://biorxiv.org/content/early/2016/05/27/055772
 
+2. Proper tutorial (based on tests) and recipes list.
 
+3. Add random seed to EWAS function to make ISVA reproducible.
 
-Perphaps there is something more that could be done for mclapply.safe.
-Is it possible to gradually increase the workload to the max number of 
-requested cores, all the while 'pinging' the system to see how it responds?
-
-
-
+4. Perhaps add SVA to EWAS?
 
 Should our 'objects' be S4 classes? 
 I have two objects to S4 classes:
@@ -81,3 +79,5 @@ setMethod("meffil.get.autosomal.sites",
               probe.idx <- which(probes$chromosome %in% paste0("chr", 1:22))
               unique(object@probes$name[probe.idx])
           })
+5. Give a warning when a idat is not found during the cnv extraction. It now gives a mclapply warning.
+6. Regional localization plots.
