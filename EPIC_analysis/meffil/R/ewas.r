@@ -15,17 +15,10 @@
 #' where the samples are mainly composed of two cell types (e.g. saliva) (Default: NULL).
 #' @param isva0 Apply Independent Surrogate Variable Analysis (ISVA) to the
 #' methylation levels and include the resulting variables as covariates in a
-#' regression model (Default: TRUE).  Note that ISVA depends on pseudo-random number
-#' generation; consequently, the only way to ensure that the same surrogate
-#' variables are generated each time, it is necessary to set the random seed
-#' using \code{set.seed()}.
+#' regression model (Default: TRUE).
 #' @param isva1 Apply Independent Surrogate Variable Analysis (ISVA) to the
 #' methylation levels, covariates and \code{isva0} variables and include
 #' the resulting variables as covariates in a regression model (Default: TRUE).
-#' Note that ISVA depends on pseudo-random number
-#' generation; consequently, the only way to ensure that the same surrogate
-#' variables are generated each time, it is necessary to set the random seed
-#' using \code{set.seed()}.
 #' @param winsorize.pct Apply all regression models to methylation levels
 #' winsorized to the given level (Default: 0.05).  Set to NA to avoid winsorizing.
 #' @param most.variable Apply Independent Surrogate Variable Analysis to the 
@@ -37,8 +30,8 @@
 meffil.ewas <- function(beta, variable,
                         covariates=NULL, batch=NULL, weights=NULL,
                         cell.counts=NULL,
-                        isva0=T, isva1=T,
-                        winsorize.pct=0.05, ## perhaps better, winsorize at 25-percentile - iqr?
+                        isva0=T, isva1=T, isvaX=T,
+                        winsorize.pct=0.05, 
                         most.variable=min(nrow(beta), 50000),
                         featureset=NA,
                         verbose=F) {
@@ -49,12 +42,14 @@ meffil.ewas <- function(beta, variable,
           
     stopifnot(length(rownames(beta)) > 0 && all(rownames(beta) %in% features$name))
     stopifnot(ncol(beta) == length(variable))
-    stopifnot(is.null(covariates) || is.data.frame(covariates) && nrow(covariates) == ncol(beta))
+    stopifnot(is.null(covariates) || is.data.frame(
+    		  covariates) && nrow(covariates) == ncol(beta))
     stopifnot(is.null(batch) || length(batch) == ncol(beta))
-    stopifnot(is.null(weights)
-              || is.numeric(weights) && (is.matrix(weights) && nrow(weights) == nrow(beta) && ncol(weights) == ncol(beta)
-                                         || is.vector(weights) && length(weights) == nrow(beta)
-                                         || is.vector(weights) && length(weights) == ncol(beta)))
+    stopifnot(is.null(weights) || is.numeric(weights) && (
+    		  is.matrix(weights) && nrow(weights) == nrow(
+    		  beta) && ncol(weights) == ncol(beta) || is.vector(
+    		  weights) && length(weights) == nrow(beta) || is.vector(
+    		  weights) && length(weights) == ncol(beta)))
     stopifnot(most.variable > 1 && most.variable <= nrow(beta))
     stopifnot(!is.numeric(winsorize.pct) || winsorize.pct > 0 && winsorize.pct < 0.5)
 
@@ -62,9 +57,22 @@ meffil.ewas <- function(beta, variable,
     original.covariates <- covariates
     if (is.character(variable))
         variable <- as.factor(variable)
+    stopifnot(!is.factor(variable) || is.ordered(variable) || length(
+    		  levels(variable)) == 2)
     
-    stopifnot(!is.factor(variable) || is.ordered(variable) || length(levels(variable)) == 2)
-    
+    simplify.variable <- function(v) {
+        if (is.character(v))
+            v <- as.factor(v)
+        if (is.factor(v)) {
+            v <- droplevels(v)
+            if (is.ordered(v) || length(levels(v)) <= 2)
+                as.integer(v) - 1
+            else
+                model.matrix(~ 0 + v)[,-1,drop=F]
+        } else
+            v
+    }
+
     msg("Simplifying any categorical variables.", verbose=verbose)
     variable <- simplify.variable(variable)
     if (!is.null(covariates))
@@ -106,10 +114,9 @@ meffil.ewas <- function(beta, variable,
         beta <- winsorize(beta, pct=winsorize.pct)
     }
 
-    if (isva0 || isva1) {
-        msg("ISVA with no covariates.", verbose=verbose)
+        if (isva0 || isva1 || isvaX) {
+         meffil:::msg("ISVA0: with no covariates (unsupervised).", verbose=verbose)
         beta.isva <- beta
-        
         autosomal.sites <- meffil.get.autosomal.sites(featureset)
         autosomal.sites <- intersect(autosomal.sites, rownames(beta.isva))
         if (length(autosomal.sites) < most.variable) {
@@ -118,21 +125,34 @@ meffil.ewas <- function(beta, variable,
           beta.isva <- beta.isva[autosomal.sites,]
         }
         var.idx <- order(rowVars(beta.isva, na.rm=T), decreasing=T)[1:most.variable]
-        beta.isva <- impute.matrix(beta.isva[var.idx,,drop=F])
+        beta.isva <- meffil:::impute.matrix(beta.isva[var.idx,,drop=F])
 
-        isva0 <- DoISVA(beta.isva, variable, verbose=verbose)
+        isva0 <- meffil:::DoISVA(beta.isva, variable, verbose=verbose)
         covariate.sets$isva0 <- as.data.frame(isva0$isv)
     }
 
-    if (isva1) {
-        msg("ISVA with covariates.", verbose=verbose)
+    if (isva1 || isvaX) {
+         meffil:::msg("ISVA1: with covariates & ISVA0 surrogate variables (hybrid).", verbose=verbose)
         if (!is.null(covariates)) {
           factor.log <- sapply(covariates, is.factor)
-          isva1 <- DoISVA(beta.isva, variable, 
+          isva1 <- meffil:::DoISVA(beta.isva, variable, 
                         cf.m=cbind(isva0$isv, covariates), 
                         factor.log=factor.log,
                         verbose=verbose)
           covariate.sets$isva1 <- as.data.frame(isva1$isv)
+        }
+    }
+    
+    if (isvaX) {
+         meffil:::msg("ISVAX: with covariates (supervised).", verbose=verbose)
+        
+        if (!is.null(covariates)) {
+          factor.log <- sapply(covariates, is.factor)
+          isvaX <- meffil:::DoISVA(beta.isva, variable, 
+                        cf.m=covariates, 
+                        factor.log=factor.log,
+                        verbose=verbose)
+          covariate.sets$isvaX <- as.data.frame(isvaX$isv)
         }
     }
 
