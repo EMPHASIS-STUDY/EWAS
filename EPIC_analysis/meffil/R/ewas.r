@@ -15,10 +15,17 @@
 #' where the samples are mainly composed of two cell types (e.g. saliva) (Default: NULL).
 #' @param isva0 Apply Independent Surrogate Variable Analysis (ISVA) to the
 #' methylation levels and include the resulting variables as covariates in a
-#' regression model (Default: TRUE).
+#' regression model (Default: TRUE).  Note that ISVA depends on pseudo-random number
+#' generation; consequently, the only way to ensure that the same surrogate
+#' variables are generated each time, it is necessary to set the random seed
+#' using \code{set.seed()}.
 #' @param isva1 Apply Independent Surrogate Variable Analysis (ISVA) to the
 #' methylation levels, covariates and \code{isva0} variables and include
 #' the resulting variables as covariates in a regression model (Default: TRUE).
+#' Note that ISVA depends on pseudo-random number
+#' generation; consequently, the only way to ensure that the same surrogate
+#' variables are generated each time, it is necessary to set the random seed
+#' using \code{set.seed()}.
 #' @param winsorize.pct Apply all regression models to methylation levels
 #' winsorized to the given level (Default: 0.05).  Set to NA to avoid winsorizing.
 #' @param most.variable Apply Independent Surrogate Variable Analysis to the 
@@ -31,7 +38,7 @@ meffil.ewas <- function(beta, variable,
                         covariates=NULL, batch=NULL, weights=NULL,
                         cell.counts=NULL,
                         isva0=T, isva1=T, isvaX=T,
-                        winsorize.pct=0.05, 
+                        winsorize.pct=0.05,
                         most.variable=min(nrow(beta), 50000),
                         featureset=NA,
                         verbose=F) {
@@ -42,14 +49,12 @@ meffil.ewas <- function(beta, variable,
           
     stopifnot(length(rownames(beta)) > 0 && all(rownames(beta) %in% features$name))
     stopifnot(ncol(beta) == length(variable))
-    stopifnot(is.null(covariates) || is.data.frame(
-    		  covariates) && nrow(covariates) == ncol(beta))
+    stopifnot(is.null(covariates) || is.data.frame(covariates) && nrow(covariates) == ncol(beta))
     stopifnot(is.null(batch) || length(batch) == ncol(beta))
-    stopifnot(is.null(weights) || is.numeric(weights) && (
-    		  is.matrix(weights) && nrow(weights) == nrow(
-    		  beta) && ncol(weights) == ncol(beta) || is.vector(
-    		  weights) && length(weights) == nrow(beta) || is.vector(
-    		  weights) && length(weights) == ncol(beta)))
+    stopifnot(is.null(weights)
+              || is.numeric(weights) && (is.matrix(weights) && nrow(weights) == nrow(beta) && ncol(weights) == ncol(beta)
+                                         || is.vector(weights) && length(weights) == nrow(beta)
+                                         || is.vector(weights) && length(weights) == ncol(beta)))
     stopifnot(most.variable > 1 && most.variable <= nrow(beta))
     stopifnot(!is.numeric(winsorize.pct) || winsorize.pct > 0 && winsorize.pct < 0.5)
 
@@ -57,22 +62,9 @@ meffil.ewas <- function(beta, variable,
     original.covariates <- covariates
     if (is.character(variable))
         variable <- as.factor(variable)
-    stopifnot(!is.factor(variable) || is.ordered(variable) || length(
-    		  levels(variable)) == 2)
     
-    simplify.variable <- function(v) {
-        if (is.character(v))
-            v <- as.factor(v)
-        if (is.factor(v)) {
-            v <- droplevels(v)
-            if (is.ordered(v) || length(levels(v)) <= 2)
-                as.integer(v) - 1
-            else
-                model.matrix(~ 0 + v)[,-1,drop=F]
-        } else
-            v
-    }
-
+    stopifnot(!is.factor(variable) || is.ordered(variable) || length(levels(variable)) == 2)
+    
     msg("Simplifying any categorical variables.", verbose=verbose)
     variable <- simplify.variable(variable)
     if (!is.null(covariates))
@@ -155,6 +147,7 @@ meffil.ewas <- function(beta, variable,
           covariate.sets$isvaX <- as.data.frame(isvaX$isv)
         }
     }
+    
 
     analyses <- sapply(names(covariate.sets), function(name) {
         msg("EWAS for covariate set", name, verbose=verbose)
@@ -282,7 +275,3 @@ ewas <- function(variable, beta, covariates=NULL, batch=NULL, weights=NULL, cell
              coefficient.se=std.error,
              n=n))             
 }
-
-
-
-
