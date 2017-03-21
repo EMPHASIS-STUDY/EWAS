@@ -32,7 +32,7 @@ pcs <- as.integer(args[2])
 
 #batch variables
 batch_var <- if(!(is.na(args[3]))) scan(file=args[3],what="character") else 
-					c("Sex","Slide","Array")
+	        c("Sex","Slide","Array")
 
 #reserve multiprocessor cores
 ncores <- ifelse(!(is.na(args[4])),args[4],8)
