@@ -1,4 +1,5 @@
 #basic git commands
+#author : Ayden Saffari
 
 #config
 git config --global user.name "Your Name"
