@@ -16,7 +16,15 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-##//install and/or load required packages 
+#install and/or load required packages 
+
+#uncomment if meffil install required
+#install from original source or EMPHASIS cloned copy
+#get auth token from https://github.com/settings/tokens
+#install_github("perishky/meffil")
+#install_github("asaffa/EMPHASIS/EPIC_analysis/meffil",
+#	        auth_token="a6590917ea14d543ba28de809a090c71a281ae79")
+
 cran_p <- c("devtools","markdown","knitr","ggplot2")
 bioc_p <- c("illuminaio","limma","IlluminaHumanMethylation450kmanifest",
             "IlluminaHumanMethylation450kanno.ilmn12.hg19",
@@ -34,13 +42,6 @@ lapply(bioc_p[which(test_bioc == FALSE)],
 lapply(cran_p,library,character.only = TRUE)
 lapply(bioc_p,library,character.only = TRUE)
 
-#uncomment if meffil install required
-#install from original source or EMPHASIS cloned copy
-#get auth token from https://github.com/settings/tokens
-#install_github("perishky/meffil")
-#install_github("asaffa/EMPHASIS/EPIC_analysis/meffil",
-#			   auth_token="a6590917ea14d543ba28de809a090c71a281ae79")
-
 #parse arguments
 args <- commandArgs(trailingOnly=TRUE)
 
@@ -57,20 +58,19 @@ ncores <- ifelse(!(is.na(args[2])),args[2],8)
 options(mc.cores=ncores)
 
 #read in sample sheet
-sample_sheet <- meffil.read.samplesheet(base=args[1],
-										recursive=T,ignore.case=T,verbose=T)
+sample_sheet <- meffil.read.samplesheet(base=args[1],recursive=T,ignore.case=T,verbose=T)
 
 #sometimes samplesheet function does not guess filenames correctly, 
 #if so, use list of idats from basenames function (seems to be more reliable)
 if(any(sapply(sample_sheet$Basename,function(x){identical(x,"character(0)")}) == T)){
     sample_sheet$Basename <- as.character(sample_sheet$Basename)
-	idats <- meffil.basenames(args[1], recursive = T)
-	idats <- data.frame(barcode=basename(idats),Basename=idats)
-	idats$Basename <- as.character(idats$Basename)
-	sample_sheet$Basename[sample_sheet$barcode %in% idats$barcode] <- 
-						  idats[idats$barcode %in% sample_sheet$barcode,2]
+    idats <- meffil.basenames(args[1], recursive = T)
+    idats <- data.frame(barcode=basename(idats),Basename=idats)
+    idats$Basename <- as.character(idats$Basename)
+    sample_sheet$Basename[sample_sheet$barcode %in% idats$barcode] <- 
+    idats[idats$barcode %in% sample_sheet$barcode,2]
 }
-
+sample_sheet <- sample_sheet[-which(sample_sheet$Basename == "character(0)"),]
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # create QC objects, perform background correction, dye bias correction, sex prediction,
 # cell count estimates
@@ -86,10 +86,9 @@ message(paste0("samples processed: ",length(qc_obj)))
 message(c("sample ids:\n",paste(names(qc_obj),"\n")))
 
 
-qc_param <- meffil.qc.parameters(beadnum.samples.threshold = 0.1, 
-								 detectionp.samples.threshold = 0.1,
-								 detectionp.cpgs.threshold = 0.1,
-								 beadnum.cpgs.threshold = 0.1, sex.outlier.sd = 5)
+qc_param <- meffil.qc.parameters(beadnum.samples.threshold = 0.1, detectionp.samples.threshold = 0.1,
+				 detectionp.cpgs.threshold = 0.1, beadnum.cpgs.threshold = 0.1,
+				 sex.outlier.sd = 5)
 								 
 qc_summ <- meffil.qc.summary(qc_obj,parameters = qc_param)
 out_file <- paste0(robj_path,"qc_summ.RData")
@@ -108,9 +107,8 @@ idx <- outliers$issue %in% c("Control probe (dye.bias)", "Methylated vs Unmethyl
                               "Detection p-value","Genotype mismatch",
                               "Control probe (bisulfite1)","Control probe (bisulfite2)")
 message("outliers to remove: \n")
-message(c("Control probe (dye.bias)\n",
-		"Methylated vs Unmethylated\n","X-Y ratio outlier\n","Low bead numbers\n",
-        "Detection p-value\n","Genotype mismatch\n","Control probe (bisulfite1)\n",
+message(c("Control probe (dye.bias)\n","Methylated vs Unmethylated\n","X-Y ratio outlier\n",
+	"Low bead numbers\n","Detection p-value\n","Genotype mismatch\n","Control probe (bisulfite1)\n",
         "Control probe(bisulfite2)\n"))                              
 outliers <- outliers[idx,]
 message(paste0("removing this many samples: ", length(unique(outliers$sample.name))))
