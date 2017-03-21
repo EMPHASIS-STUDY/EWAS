@@ -58,7 +58,8 @@ ncores <- ifelse(!(is.na(args[2])),args[2],8)
 options(mc.cores=ncores)
 
 #read in sample sheet
-sample_sheet <- meffil.read.samplesheet(base=args[1],recursive=T,ignore.case=T,verbose=T)
+sample_sheet <- meffil.read.samplesheet(base=args[1],recursive=T,
+					ignore.case=T,verbose=T)
 
 #sometimes samplesheet function does not guess filenames correctly, 
 #if so, use list of idats from basenames function (seems to be more reliable)
@@ -88,8 +89,10 @@ message(paste0("samples processed: ",length(qc_obj)))
 message(c("sample ids:\n",paste(names(qc_obj),"\n")))
 
 
-qc_param <- meffil.qc.parameters(beadnum.samples.threshold = 0.1, detectionp.samples.threshold = 0.1,
-				 detectionp.cpgs.threshold = 0.1, beadnum.cpgs.threshold = 0.1,
+qc_param <- meffil.qc.parameters(beadnum.samples.threshold = 0.1,
+				 detectionp.samples.threshold = 0.1,
+				 detectionp.cpgs.threshold = 0.1,
+				 beadnum.cpgs.threshold = 0.1,
 				 sex.outlier.sd = 5)
 								 
 qc_summ <- meffil.qc.summary(qc_obj,parameters = qc_param)
@@ -110,8 +113,8 @@ idx <- outliers$issue %in% c("Control probe (dye.bias)", "Methylated vs Unmethyl
                               "Control probe (bisulfite1)","Control probe (bisulfite2)")
 message("outliers to remove: \n")
 message(c("Control probe (dye.bias)\n","Methylated vs Unmethylated\n","X-Y ratio outlier\n",
-	"Low bead numbers\n","Detection p-value\n","Genotype mismatch\n","Control probe (bisulfite1)\n",
-        "Control probe(bisulfite2)\n"))                              
+	"Low bead numbers\n","Detection p-value\n","Genotype mismatch\n",
+	"Control probe (bisulfite1)\n","Control probe(bisulfite2)\n"))                              
 outliers <- outliers[idx,]
 message(paste0("removing this many samples: ", length(unique(outliers$sample.name))))
 qc_obj <- meffil.remove.samples(qc_obj, outliers$sample.name)
