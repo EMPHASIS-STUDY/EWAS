@@ -62,7 +62,7 @@ sample_sheet <- meffil.read.samplesheet(base=args[1],recursive=T,ignore.case=T,v
 
 #sometimes samplesheet function does not guess filenames correctly, 
 #if so, use list of idats from basenames function (seems to be more reliable)
-if(any(sapply(sample_sheet$Basename,function(x){identical(x,"character(0)")}) == T)){
+if(any(sample_sheet$Basename == "character(0)")){
     sample_sheet$Basename <- as.character(sample_sheet$Basename)
     idats <- meffil.basenames(args[1], recursive = T)
     idats <- data.frame(barcode=basename(idats),Basename=idats)
@@ -70,7 +70,9 @@ if(any(sapply(sample_sheet$Basename,function(x){identical(x,"character(0)")}) ==
     sample_sheet$Basename[sample_sheet$barcode %in% idats$barcode] <- 
     idats[idats$barcode %in% sample_sheet$barcode,2]
 }
-sample_sheet <- sample_sheet[-which(sample_sheet$Basename == "character(0)"),]
+
+sample_sheet <- sample_sheet[-which(sample_sheet$Basename == "character(0)"),]	
+
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # create QC objects, perform background correction, dye bias correction, sex prediction,
 # cell count estimates
