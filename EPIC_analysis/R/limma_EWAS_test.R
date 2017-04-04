@@ -44,15 +44,18 @@ pcs <- prcomp(t(norm_mval_m_fil),retx=T, center=T, scale=T )
 #get variance explained
 summary(pcs)
 
+#plot PCs  
+pcs_df <- cbind(sample_sheet, pcs$x[,1:4])
+
 pal <- c("#F87E86","#0E7597","#2E7B39","#FDA80A",
 "#B31918","#9CD893","#E6BD9B","#B7BAAA","#683A2E","#211318")
 
 #Sex
 pdf(file="../results/ENID_PCS_Sex.pdf", onefile=FALSE)
-p1 <- ggpcaplot(pcs_df, pcs=c(1,2), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p2 <- ggpcaplot(pcs_df, pcs=c(1,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3 <- ggpcaplot(pcs_df, pcs=c(2,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3l <- ggpcaplot(pcs_df, pcs=c(2,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
+p1 <- ggPCAplot(pcs_df, pcs=c(1,2), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p2 <- ggPCAplot(pcs_df, pcs=c(1,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3 <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3l <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sex",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
 
 g_legend<-function(a.gplot){
   tmp <- ggplot_gtable(ggplot_build(a.gplot))
@@ -66,10 +69,10 @@ dev.off()
 
 #sentrix_row
 pdf(file="../results/ENID_PCS_sentrix_row.pdf", onefile=FALSE)
-p1 <- ggpcaplot(pcs_df, pcs=c(1,2), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p2 <- ggpcaplot(pcs_df, pcs=c(1,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3 <- ggpcaplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3l <- ggpcaplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
+p1 <- ggPCAplot(pcs_df, pcs=c(1,2), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p2 <- ggPCAplot(pcs_df, pcs=c(1,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3 <- ggPCAplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3l <- ggPCAplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
 
 legr1 <-g_legend(p3l)
 grid.arrange(p1,p2,p3,legr1,nrow=1,heights=c(2),widths=c(2,2,2,1.1))
@@ -77,10 +80,10 @@ dev.off()
 
 #Sample plate
 pdf(file="../results/ENID_PCS_Sample_Plate.pdf", onefile=FALSE)
-p1 <- ggpcaplot(pcs_df, pcs=c(1,2), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p2 <- ggpcaplot(pcs_df, pcs=c(1,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3 <- ggpcaplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3l <- ggpcaplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
+p1 <- ggPCAplot(pcs_df, pcs=c(1,2), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p2 <- ggPCAplot(pcs_df, pcs=c(1,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3 <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
+p3l <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
 legr1 <-g_legend(p3l)
 grid.arrange(p1,p2,p3,legr1,nrow=1,heights=c(2),widths=c(2,2,2,1.1))
 dev.off()
