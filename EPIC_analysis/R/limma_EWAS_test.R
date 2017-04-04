@@ -16,6 +16,8 @@ library("limma")
 library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
 library("gridExtra")
 library("ggplot2")
+source("ggPCAplot.R")
+source("ilEPICfilter.R")
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^
