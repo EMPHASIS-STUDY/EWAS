@@ -18,13 +18,6 @@
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #install and/or load required packages 
 
-#uncomment if meffil install required
-#install from original source or EMPHASIS cloned copy
-#get auth token from https://github.com/settings/tokens
-#install_github("perishky/meffil")
-#install_github("asaffa/EMPHASIS/EPIC_analysis/meffil",
-#	        auth_token="a6590917ea14d543ba28de809a090c71a281ae79")
-
 cran_p <- c("devtools","markdown","knitr","ggplot2")
 bioc_p <- c("illuminaio","limma","IlluminaHumanMethylation450kmanifest",
             "IlluminaHumanMethylation450kanno.ilmn12.hg19",
