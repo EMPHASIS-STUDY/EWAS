@@ -29,6 +29,7 @@ all(colnames(norm_betas) == rownames(sample_sheet))
 norm_betas_fil <- ilEPICfilter(norm_betas, cross=T, multi=T, sex=T) 
 
 #convert to m vals
+norm_betas_fil[norm_betas_fil==0]<-0.00001
 norm_mval_fil <- logit2(norm_betas_fil)
 
 #get annotation
