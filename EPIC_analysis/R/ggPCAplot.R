@@ -4,7 +4,7 @@
 # author. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
 # affiliations. MRC ING, LSHTM, BBK
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-
+pal <- c("#F87E86","#0E7597","#2E7B39","#FDA80A","#B31918","#9CD893","#E6BD9B","#B7BAAA","#683A2E","#211318")
 ggPCAplot <- function(df,pcs=c(1,2),batch="Sex",xlim = c(-500,500),ylim = c(-500,500),pal=NA) {
 
 	#x and y labels
