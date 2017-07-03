@@ -91,9 +91,10 @@ write.table(cell_counts,out_file,sep="\t",row.names=F,col.names=T,quote=F)
 out_file <- paste0(robj_path,"cell_counts.RData")
 message(paste0("saving to: ",out_file))
 save(cell_counts,file=out_file)
-^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 out_file <- paste0("meffil","_QC.RData")
 out_file <- paste0(rwork_path,out_file)
 message(paste0("saving to: ",out_file))
 save.image(out_file)
+message("done!")
