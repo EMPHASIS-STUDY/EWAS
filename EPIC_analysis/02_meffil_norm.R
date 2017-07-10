@@ -21,21 +21,25 @@ library("ggplot2")
 
 #parse arguments
 args <- commandArgs(trailingOnly=TRUE)
+args_1 <- as.character(args[1])
+args_2 <- as.integer(args[2])
+args_3 <- as.character(args[3])
+args_4 <- as.integer(args[4])
 
 #load data
-setwd(args[1])
-in_file <- paste0(args[1],"/R_workspaces/meffil_QC.RData")
+setwd(args_1)
+in_file <- paste0(args_1,"/R_workspaces/meffil_QC.RData")
 load(in_file)
 
 #number of pcs
-pcs <- as.integer(args[2])
+pcs <- args_2
 
+in_var <- paste(args_1,args_3,sep="/")
 #batch variables
-batch_var <- if(!(is.na(args[3]))) scan(file=args[3],what="character") else 
-	        c("Sex","Slide","Array")
+batch_var <- if(!(is.na(args_3))) scan(file=in_var,what="character") else c("Sex","Slide","Array")
 
 #reserve multiprocessor cores
-ncores <- ifelse(!(is.na(args[4])),args[4],8)
+ncores <- ifelse(!(is.na(args_4)),args_4,8) 
 options(mc.cores=ncores)
 
 norm_obj <- meffil.normalize.quantiles(qc_obj, number.pcs=pcs)
