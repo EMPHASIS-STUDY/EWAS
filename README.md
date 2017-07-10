@@ -17,10 +17,3 @@
 Example code:
 * Rscript 01_meffil_QC.R /home/EMPHASIS 16
 * Rscript 02_meffil_norm.R /home/EMPHASIS 14 batch.tsv 16
-
-## 2. Outcome data processing
-## 3. Intervention-methylation associations
-## 4. Methylation-outcome associations
-## 5. Pathways analysis
-## 6. Cross-cohort comparison
-## 7. Causal inference and mQTL analysis
