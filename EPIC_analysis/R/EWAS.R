@@ -16,21 +16,24 @@ library("ggplot2")
 
 source("ggPCAplot.R")
 source("ilEPICfilter.R")
-
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^
 load("../R_objects/norm_beta.RData")
 load("../R_objects/pdata.RData")
 
-all(colnames(norm_betas) == rownames(pdata))
+if(ncol(norm_beta) != nrow(pdata)){
+ norm_beta <- norm_beta[,colnames(norm_beta) %in% rownames(pdata)]
+ norm_beta <- norm_beta[,match(colnames(norm_beta),rownames(pdata))]
+}
+all(colnames(norm_beta) == rownames(pdata))
 
 #filter probes
 #TODO - at later stage
 #norm_betas_fil <- ilEPICfilter(norm_betas, cross=T, multi=T, sex=T) 
  
 #convert to m vals
-norm_betas_fil[norm_betas_fil==0]<-0.00001
+norm_betas_fil[norm_betas_fil == 0] <- 0.00001
 norm_mval_fil <- logit2(norm_betas_fil)
 
 #get annotation
