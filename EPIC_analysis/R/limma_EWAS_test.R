@@ -1,33 +1,34 @@
-#UNFINISHED
-#TEST SCRIPT
-
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-# TEST R script to perform EWAS using limma 
+#R script for running EWAS using limma with bacth adjustment using ISVA/SV/PCs 
 #
-# #norm_betas = normalized beta values
-# #sample_sheet = list of covariates
-#
+#inputs: normalized beta values, phenotypic data
 #
 # author. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
 # affiliations. MRC ING, LSHTM
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
+library("meffil")
+library("sva")
 library("limma")
 library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
 library("gridExtra")
 library("ggplot2")
+
 source("ggPCAplot.R")
 source("ilEPICfilter.R")
+
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^
+load("../R_objects/norm_beta.RData")
+load("../R_objects/pdata.RData")
 
-all(colnames(norm_betas) == rownames(sample_sheet))
+all(colnames(norm_betas) == rownames(pdata))
 
 #filter probes
-#TODO
-norm_betas_fil <- ilEPICfilter(norm_betas, cross=T, multi=T, sex=T) 
-
+#TODO - at later stage
+#norm_betas_fil <- ilEPICfilter(norm_betas, cross=T, multi=T, sex=T) 
+ 
 #convert to m vals
 norm_betas_fil[norm_betas_fil==0]<-0.00001
 norm_mval_fil <- logit2(norm_betas_fil)
