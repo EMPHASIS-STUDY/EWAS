@@ -30,13 +30,15 @@ norm_beta <- norm_beta[,match(colnames(norm_beta),rownames(pdata))]
 all(colnames(norm_beta) == rownames(pdata))
 
 #convert to m vals
-norm_mval <- logit2(norm_beta)
+#deal with zero values by adding offset (if needed)
+norm_beta_noinf <- norm_beta
+norm_beta_noinf[norm_beta_noinf == 0] <- 0.00001
+norm_mval <- logit2(norm_beta_noinf)
+rm(norm_beta_noinf)
 
 #filter out cross-hybridising probes and chrX and chrY probes
 #NB. deal with SNP probes at later stage
 norm_beta_fil <- ilEPICfilter(norm_beta, cross=T, sex=T, snpfil=F)
- 
-#deal with zero values by adding offset (if needed)
 #norm_beta_fil[norm_beta_fil == 0] <- 0.00001
 norm_mval_fil <- logit2(norm_beta_fil)
 
@@ -70,6 +72,12 @@ write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc.csv")
 # ISVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #NB - perfom using unfiltered dataset
+
+#TODO: replace this with custom script
+featureset <- meffil:::guess.featureset(rownames(norm_mval))
+features <- meffil.get.features(featureset)
+autosomal.sites <- meffil.get.autosomal.sites(featureset)
+autosomal.sites <- intersect(autosomal.sites, rownames(norm_mval))
 
 #ISVA0
 variable <- pheno_m_PC_wbc[,colnames(pheno_m_PC_wbc) %in% c("Case")]
