@@ -15,8 +15,7 @@
 # affiliations. MRC ING, LSHTM
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
-
-ilEPICfilter <- function (object, cross = F, sex = F, snps = c("CpG", "SBE"), maf = 0) 
+ilEPICfilter <- function (object, cross = F, sex = F, snpfil = F, snps = c("CpG", "SBE"), maf = 0) 
 {
   
   require("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
@@ -45,15 +44,19 @@ ilEPICfilter <- function (object, cross = F, sex = F, snps = c("CpG", "SBE"), ma
   if (!all(choices %in% colnames(snpDF))) 
     stop("The specificed 'snpAnno' is not supported by this function")
   if (sum(!(maf_cols %in% choices)) > 0) {
-    stop(
-      "snps vector argument must be a combination of  \"Probe\", \"CpG\" and \"SBE\"")
+    stop("snps vector argument must be a combination of  \"Probe\", \"CpG\" and \"SBE\"")
   }
   if (!is.numeric(maf) || maf < 0 || maf > 1) {
     stop("maf argument must be a numeric value between 0 and 1")
   }
+  
+  if(snpfil){
   wh <- Reduce(union, lapply(maf_cols, function(xx) {
     which(snpDF[, xx] >= maf)
   }))
+  }else{
+    wh <- NA
+  }
   
   #############################################
   #2. remove cross-reactive/non-specific probes
@@ -73,11 +76,13 @@ ilEPICfilter <- function (object, cross = F, sex = F, snps = c("CpG", "SBE"), ma
     sx <- NA
   }
   
-  fil <- c(wh,cr,mm,sx)
+  fil <- c(wh,cr,sx)
   fil <- fil[!(is.na(fil))]
   fil <- sort(fil)
   fil <- unique(fil)
   
-  snpDF <- snpDF[-fil, ]
+  if(length(fil) > 0){
+    snpDF <- snpDF[-fil, ]
+  }
   object[which(rownames(object) %in% rownames(snpDF)),]
 }
