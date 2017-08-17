@@ -15,6 +15,7 @@ library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
 library("gridExtra")
 library("ggplot2")
 
+source("ggQQplot.R")
 source("ggPCAplot.R")
 source("ilEPICfilter.R")
 
@@ -67,8 +68,16 @@ pcpvar <- data.frame(PC = as.factor(seq(1:length(pca$sdev))),
 #get variance explained
 summary(pca)
 
+#plot scree
+ggplot(pcpvar[1:30,], aes(x=PC,y=per_var)) +  
+  geom_bar(stat = "identity") + 
+  ylab("percentage variance explained") +
+  theme_bw() + 
+  theme(panel.grid.major = element_line(colour = "#F6F7F7"),
+        panel.grid.minor = element_line(colour = "#F6F7F7"))
+
 #correlations/associations with batch variables
-pcs_pdata_assoc <- batchPCAcorr(pcs[,1:6],pdata[,-c(8)],6)
+pcs_pdata_assoc <- batchPCAcorr(pcs[,1:15],pdata[,-c(8)],15)
 write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc_200k_fil.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
@@ -78,15 +87,17 @@ write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc_200k_fil.csv")
 mod <- model.matrix(~.,cbind(covariates,variable))
 mod0 <- model.matrix(~.,covariates)
 sva <- sva(norm_mval_200kvar, mod=mod, mod0=mod0)
+svs <- as.data.frame(sva$sv)
+colnames(svs) <- sapply(colnames(svs),function(x){paste0("S",x)})
+rownames(svs) <- colnames(norm_mval_200kvar)
 
-svs_pdata_assoc <- batchPCAcorr(sva,pdata[,-c(8)],ncol(sva))
+svs_pdata_assoc <- batchPCAcorr(svs,pdata[,-c(8)],ncol(svs))
 write.csv(svs_pdata_assoc,"../results/EMPH_EPIC_SVA_assoc_200k_fil.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 # ISVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #ISVA unsupervised
-
 isva_un <- meffil:::isva(norm_mval_200kvar, as.numeric(variable), verbose=T)
 isva_un <- as.data.frame(isva_un$isv)
 colnames(isva_un) <- sapply(colnames(isva_un),function(x){paste0("IS",x)})
@@ -98,51 +109,150 @@ write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc_200k_fil.csv")
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #create design matrices
 #^^^^^^^^^^^^^^^^^^^^^^^^
+####
 #All
-design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Neu + Sex + Age + MooreSoC + MasterGroupNo, pdata)
-
+####
+design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Neu + 
+                           Sex + Age + MooreSoC + MasterGroupNo, pdata)
+############
 #All no BCC
+############
 design_all_no_BCC <-  model.matrix(~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
+#####
 #SVs
+#####
+design_svs <- model.matrix(~ SV1 + SV2 + SV3 + SV4 + SV5 + SV6 + SV7 + SV8 + SV9 + SV10 + SV11 +
+                           SV12 + SV13 + SV15 + SV17 + SV18 + SV19 + SV20 + SV21 + Age + 
+                           MooreSoC + MasterGroupNo, cbind(pdata,svs))
 
-#ISVs (unsup) + bio vars (excluding sex) 
-design_isva_un <- model.matrix(~ ISV1 + ISV3 + ISV4 + ISV5 + ISV6 + Age +  MooreSoC + MasterGroupNo,cbind(pdata,isva_un))
+###############
+#ISVs (unsup) 
+##############
+#+ bio vars (excluding sex) 
+design_isvs_un <- model.matrix(~ ISV1 + ISV3 + ISV4 + ISV5 + ISV6 + Sex + 
+                               Age + MooreSoC + MasterGroupNo,cbind(pdata,isva_un))
 
-#PCs 1:6 + bio vars (excluding sex)
-design_PC <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
+#########
+#PCs
+#########
+#+ bio vars (excluding sex)
+design_pcs <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+                          PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
 
 #^^^^^^^^^^^
 #run limma 
 #^^^^^^^^^^
+####
+#All
+####
+DMPs_all <- lmFit(norm_mval_fil,design_all)
+DMPs_all <- eBayes(DMPs_all)
+res_DMPs_all <- topTable(DMPs_all, coef = "MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
 
-DMPs_PC <- lmFit(norm_mval_fil,design_PC)
-DMPs_PC <- eBayes(DMPs_PC)
-res_DMPs_PC <- topTable(DMPs_PC, coef = "Case", number = Inf, genelist=anno_sub, sort.by="B")
+#write results
+write.csv(as.data.frame(res_DMPs_all)[1:100,],file="../results/EPIC_EWAS_top_100_DMPs_all.csv")
 
-#PCs (as above) + leave out a blood cell type
-#TODO
+#QQplot
+lambda <- signif(median(qchisq(1-res_DMPs_all$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(res_DMPs_all$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ Slide + Array + BCCs + Sex + Age + MooreSoC + MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_all_QQ.png")
 
-#all and no PCs
-#TODO
+############
+#All no BCC
+############
+
+DMPs_all_no_BCC <- lmFit(norm_mval_fil,design_all_no_BCC)
+DMPs_all_no_BCC  <- eBayes(DMPs_all_no_BCC )
+res_DMPs_all_no_BCC <- topTable(DMPs_all_no_BCC, coef = "MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
+
+write.csv(as.data.frame(res_DMPs_all_no_BCC)[1:100,],file="../results/EPIC_EWAS_top_100_DMPs_all_no_BCC.csv")
+
+#QQplot
+lambda <- signif(median(qchisq(1-res_DMPs_all_no_BCC$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(res_DMPs_all_no_BCC$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_all_NO_BCC_QQ.png")
+
+#####
+#SVs
+#####
+DMPs_svs <- lmFit(norm_mval_fil,design_svs)
+DMPs_svs <- eBayes(DMPs_svs)
+res_DMPs_svs <- topTable(DMPs_svs, coef = "MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
+
+#write results
+write.csv(as.data.frame(res_DMPs_svs)[1:100,],file="../results/EPIC_EWAS_top_100_DMPs_svs.csv")
+
+#QQplot
+lambda <- signif(median(qchisq(1-res_DMPs_svs$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(res_DMPs_svs$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ SVs + Age + MooreSoC + MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_svs_QQ.png")
 
 
+###############
+#ISVs (unsup) 
+##############
+#+ bio vars (excluding sex) 
 
+DMPs_isvs <- lmFit(norm_mval_fil,design_isvs_un)
+DMPs_isvs <- eBayes(DMPs_isvs)
+res_DMPs_isvs <- topTable(DMPs_isvs, coef = "MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
+
+#write results
+write.csv(as.data.frame(res_DMPs_isvs)[1:100,],file="../results/EPIC_EWAS_top_100_DMPs_isvs.csv")
+
+#QQplot
+lambda <- signif(median(qchisq(1-res_DMPs_isvs$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(res_DMPs_isvs$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ isvs + Sex + Age + MooreSoC + MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_isvs_QQ.png")
+
+#########
+#PCs
+#########
+
+DMPs_pcs <- lmFit(norm_mval_fil,design_pcs)
+DMPs_pcs <- eBayes(DMPs_pcs)
+res_DMPs_pcs <- topTable(DMPs_pcs, coef = "MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
+
+#write results
+write.csv(as.data.frame(res_DMPs_pcs)[1:100,],file="../results/EPIC_EWAS_top_100_DMPs_pcs.csv")
+
+#QQplot
+lambda <- signif(median(qchisq(1-res_DMPs_pcs$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(res_DMPs_pcs$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ pcs + Age + MooreSoC + MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
-#Plots
+#Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^
-
-#scree
-ggplot(pcpvar[1:10,], aes(x=PC,y=per_var)) +  
-  geom_bar(stat = "identity") + 
-  ylab("percentage variance explained") +
-  theme_bw() + 
-  theme(panel.grid.major = element_line(colour = "#F6F7F7"),
-        panel.grid.minor = element_line(colour = "#F6F7F7"))
 
 #plot PCs  
-pcs_df <- cbind(sample_sheet, pcs$x[,1:4])
+pcs_df <- cbind(sample_sheet, pcs[,1:4])
 
 pal <- c("#F87E86","#0E7597","#2E7B39","#FDA80A",
 "#B31918","#9CD893","#E6BD9B","#B7BAAA","#683A2E","#211318")
