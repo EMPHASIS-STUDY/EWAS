@@ -47,12 +47,20 @@ anno <- getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b2.hg19)
 anno_sub <- anno[match(rownames(norm_mval_fil),anno$Name),
 c(1,2,4,12:17,22,23,26,35)]
 
+#subset of 200k most variable probes to use for PCA/SVA/ISVA 
+#(idea from meffil)
+variable <- pdata[,colnames(pdata) %in% c("MasterGroupNo")]
+covariates <- pdata[,colnames(pdata) %in% c("Age","MooreSoC")]
+var_idx <- order(rowVars(norm_mval_fil, na.rm=T), decreasing=T)[1:200000]
+norm_mval_200kvar <- meffil:::impute.matrix(norm_mval_fil[var_idx,,drop=F])
+
 random_seed <- 20170817
+set.seed(random_seed)
+
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #Principal components
 #^^^^^^^^^^^^^^^^^^^^^^^^
-#NB - perfom using unfiltered dataset
-pca <- prcomp(t(norm_mval_fil),center=T, scale.=F)
+pca <- prcomp(t(norm_mval_200kvar),center=T, scale.=F)
 pcs <- pca$x
 pcpvar <- data.frame(PC = as.factor(seq(1:length(pca$sdev))),
                           per_var = ((pca$sdev^2)/sum(pca$sdev^2)) * 100)
@@ -61,51 +69,47 @@ summary(pca)
 
 #correlations/associations with batch variables
 pcs_pdata_assoc <- batchPCAcorr(pcs[,1:6],pdata[,-c(8)],6)
-write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc.csv")
+write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc_200k_fil.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #SVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
+#cant have sex + mastergroup in same model!
+mod <- model.matrix(~.,cbind(covariates,variable))
+mod0 <- model.matrix(~.,covariates)
+sva <- sva(norm_mval_200kvar, mod=mod, mod0=mod0)
 
-
+svs_pdata_assoc <- batchPCAcorr(sva,pdata[,-c(8)],ncol(sva))
+write.csv(svs_pdata_assoc,"../results/EMPH_EPIC_SVA_assoc_200k_fil.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 # ISVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
-
 #ISVA unsupervised
-variable <- as.numeric(pdata[,colnames(pdata) %in% c("MasterGroupNo")])
-var_idx <- order(rowVars(norm_mval_fil, na.rm=T), decreasing=T)[1:50000]
-norm_mval_isva <- impute.matrix(norm_mval_fil[var_idx,,drop=F])
 
-set.seed(random_seed)
-isva_un <- meffil:::isva(norm_mval_isva, variable, verbose=T)
+isva_un <- meffil:::isva(norm_mval_200kvar, as.numeric(variable), verbose=T)
 isva_un <- as.data.frame(isva_un$isv)
 colnames(isva_un) <- sapply(colnames(isva_un),function(x){paste0("IS",x)})
-rownames(isva_un) <- colnames(norm_mval_isva)
+rownames(isva_un) <- colnames(norm_mval_200kvar)
 
 isvs_un_pdata_assoc <- batchPCAcorr(isva_un,pdata[,-c(8)],ncol(isva_un))
-write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc.csv")
-
-
+write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc_200k_fil.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #create design matrices
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #All
-design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Sex + Age + NCSoC + MasterGroupNo, pdata)
+design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Neu + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
 #All no BCC
 design_all_no_BCC <-  model.matrix(~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
-#SVs (unsup)
-#SVs (sup)
+#SVs
 
-#ISVs (unsup)
-design_isva_un <- model.matrix(~ ISV1 + ISV2 + ISV3 + ISV4 + ISV5 + ISV6 + ISV7 + Age + MasterGroupNo,cbind(pdata,isva_un))
-#ISVs (sup)
+#ISVs (unsup) + bio vars (excluding sex) 
+design_isva_un <- model.matrix(~ ISV1 + ISV3 + ISV4 + ISV5 + ISV6 + Age +  MooreSoC + MasterGroupNo,cbind(pdata,isva_un))
 
-#PCs 1:6 + 
+#PCs 1:6 + bio vars (excluding sex)
 design_PC <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
 
 #^^^^^^^^^^^
