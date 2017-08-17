@@ -47,11 +47,12 @@ anno <- getAnnotation(IlluminaHumanMethylationEPICanno.ilm10b2.hg19)
 anno_sub <- anno[match(rownames(norm_mval_fil),anno$Name),
 c(1,2,4,12:17,22,23,26,35)]
 
+random_seed <- 20170817
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #Principal components
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #NB - perfom using unfiltered dataset
-pca <- prcomp(t(norm_mval),center=T, scale.=F)
+pca <- prcomp(t(norm_mval_fil),center=T, scale.=F)
 pcs <- pca$x
 pcpvar <- data.frame(PC = as.factor(seq(1:length(pca$sdev))),
                           per_var = ((pca$sdev^2)/sum(pca$sdev^2)) * 100)
@@ -65,60 +66,52 @@ write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc.csv")
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #SVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
-#NB - perfom using unfiltered dataset
+
 
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 # ISVA
 #^^^^^^^^^^^^^^^^^^^^^^^^
-#NB - perfom using unfiltered dataset
 
-#TODO: replace this with custom script
-featureset <- meffil:::guess.featureset(rownames(norm_mval))
-features <- meffil.get.features(featureset)
-autosomal.sites <- meffil.get.autosomal.sites(featureset)
-autosomal.sites <- intersect(autosomal.sites, rownames(norm_mval))
+#ISVA unsupervised
+variable <- as.numeric(pdata[,colnames(pdata) %in% c("MasterGroupNo")])
+var_idx <- order(rowVars(norm_mval_fil, na.rm=T), decreasing=T)[1:50000]
+norm_mval_isva <- impute.matrix(norm_mval_fil[var_idx,,drop=F])
 
-#ISVA0
-variable <- pheno_m_PC_wbc[,colnames(pheno_m_PC_wbc) %in% c("Case")]
-var_idx <- order(rowVars(norm_beta_m_fil, na.rm=T), decreasing=T)[1:50000]
-beta_isva <- meffil:::impute.matrix(norm_beta_m_fil[var_idx,,drop=F])
-isva0 <- meffil:::DoISVA(beta_isva, variable, verbose=T)
-isva0 <- as.data.frame(isva0$isv)
+set.seed(random_seed)
+isva_un <- meffil:::isva(norm_mval_isva, variable, verbose=T)
+isva_un <- as.data.frame(isva_un$isv)
+colnames(isva_un) <- sapply(colnames(isva_un),function(x){paste0("IS",x)})
+rownames(isva_un) <- colnames(norm_mval_isva)
 
-        
-#ISVA1
-covs <- pheno_m_PC_wbc[,colnames(pheno_m_PC_wbc) %in% c("Slide","Sample_Plate","sentrix_row","sentrix_col","Sex","Bcell","CD4T","CD8T","Eos","Mono","NK")]
-factor_log <- sapply(cbind(isva0, covs), is.factor)
-isva1 <- meffil:::DoISVA(beta_isva, variable, 
-                        cf.m=cbind(isva0, covs), 
-                        factor.log=factor_log,
-                        verbose=T)
-isva1 <- as.data.frame(isva1$isv)
-
-design_isva0 <- model.matrix(~ .,cbind(isva0,variable))
-design_isva1 <- model.matrix(~ .,cbind(isva1,variable))
+isvs_un_pdata_assoc <- batchPCAcorr(isva_un,pdata[,-c(8)],ncol(isva_un))
+write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc.csv")
 
 
 
 #^^^^^^^^^^^^^^^^^^^^^^^^
 #create design matrices
 #^^^^^^^^^^^^^^^^^^^^^^^^
+#All
+design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Sex + Age + NCSoC + MasterGroupNo, pdata)
 
-#PCs 1,2,3 + Sex + WBCs
-design_PC <- model.matrix(~ PC1 + PC2 + PC3 + Sex + Bcell + CD4T + CD8T + Eos + Mono + Neu + NK + Case, sample_sheet)
-all(colnames(norm_mval_fil) == rownames(design_PC))
+#All no BCC
+design_all_no_BCC <-  model.matrix(~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
-#PCs (as above) + leave out a blood cell type
-design_PC_trim_neu <- model.matrix(~ PC1 + PC2 + PC3 + Sex + Bcell + CD4T + CD8T + Eos + Mono + NK + Case, sample_sheet)
+#SVs (unsup)
+#SVs (sup)
 
-#all and no PCs
-design_all <- model.matrix(~ Sample_Plate + Slide + sentrix_row + sentrix_col + Sex + Bcell + CD4T + CD8T + Eos + Mono + Neu + NK + Case, sample_sheet)
+#ISVs (unsup)
+design_isva_un <- model.matrix(~ ISV1 + ISV2 + ISV3 + ISV4 + ISV5 + ISV6 + ISV7 + Age + MasterGroupNo,cbind(pdata,isva_un))
+#ISVs (sup)
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
-#run limma using PCs
-#^^^^^^^^^^^^^^^^^^^^^^^^
-#PCs 1,2,3 + Sex + WBCs
+#PCs 1:6 + 
+design_PC <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
+
+#^^^^^^^^^^^
+#run limma 
+#^^^^^^^^^^
+
 DMPs_PC <- lmFit(norm_mval_fil,design_PC)
 DMPs_PC <- eBayes(DMPs_PC)
 res_DMPs_PC <- topTable(DMPs_PC, coef = "Case", number = Inf, genelist=anno_sub, sort.by="B")
