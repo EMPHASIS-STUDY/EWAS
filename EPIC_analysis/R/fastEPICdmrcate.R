@@ -18,14 +18,13 @@
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 
-fastEPICdmrcate <- function(mvals,design, 
- 					   annotation = c(array = "IlluminaHumanMethylationEPIC",
- 					   annotation ="ilm10b2.hg19"),analysis.type="differential",
- 					   coef="variable",fdr=0.05, lambda=500, C=2, pcutoff=0.05,
- 					   min.cpgs=2, mc.cores=1,...) {
+fastEPICdmrcate <- function(mvals,design, annotation = c(array = "IlluminaHumanMethylationEPIC",
+ 			    annotation ="ilm10b2.hg19"),analysis.type="differential",
+ 			    coef="variable",fdr=0.05, lambda=500, C=2, pcutoff=0.05,
+ 			    min.cpgs=2, mc.cores=1,...) {
 	
 	require("DMRcate")	
-	dm <- cpg.annotate(datatype="array", mvals, annotation=annotation,design=design,
+	dm <- cpg.annotate(datatype="array",mvals,what="M",annotation=annotation,design=design,
 	 				  analysis.type=analysis.type,fdr=fdr,coef=coef,...)
 	DMRs <- dmrcate(dm,lambda=lambda, C=C, pcutoff=pcutoff, min.cpgs=min.cpgs,
 	mc.cores=mc.cores)
