@@ -1,5 +1,5 @@
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
-#R script for running EWAS using limma with bacth adjustment using ISVA/SV/PCs 
+#R script for running EWAS using limma with batch adjustment using ISVA/SV/PCs 
 #
 #inputs: normalized beta values, phenotypic data
 #
@@ -9,6 +9,7 @@
 
 library("meffil")
 library("minfi")
+library("missMethyl")
 library("sva")
 library("limma")
 library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
@@ -19,9 +20,9 @@ source("ggQQplot.R")
 source("ggPCAplot.R")
 source("ilEPICfilter.R")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 load("../R_objects/norm_beta.RData")
 load("../R_objects/pdata.RData")
 
@@ -58,9 +59,13 @@ norm_mval_200kvar <- meffil:::impute.matrix(norm_mval_fil[var_idx,,drop=F])
 random_seed <- 20170817
 set.seed(random_seed)
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#Batch adjustment methods
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+#####################
 #Principal components
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#####################
 pca <- prcomp(t(norm_mval_200kvar),center=T, scale.=F)
 pcs <- pca$x
 pcpvar <- data.frame(PC = as.factor(seq(1:length(pca$sdev))),
@@ -80,9 +85,9 @@ ggplot(pcpvar[1:30,], aes(x=PC,y=per_var)) +
 pcs_pdata_assoc <- batchPCAcorr(pcs[,1:15],pdata[,-c(8)],15)
 write.csv(pcs_pdata_assoc,"../results/EMPH_EPIC_PCA_assoc_200k_fil.csv")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#####################
 #SVA
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#####################
 #cant have sex + mastergroup in same model!
 mod <- model.matrix(~.,cbind(covariates,variable))
 mod0 <- model.matrix(~.,covariates)
@@ -94,9 +99,10 @@ rownames(svs) <- colnames(norm_mval_200kvar)
 svs_pdata_assoc <- batchPCAcorr(svs,pdata[,-c(8)],ncol(svs))
 write.csv(svs_pdata_assoc,"../results/EMPH_EPIC_SVA_assoc_200k_fil.csv")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
+
+#####################
 # ISVA
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#####################
 #ISVA unsupervised
 isva_un <- meffil:::isva(norm_mval_200kvar, as.numeric(variable), verbose=T)
 isva_un <- as.data.frame(isva_un$isv)
@@ -106,46 +112,17 @@ rownames(isva_un) <- colnames(norm_mval_200kvar)
 isvs_un_pdata_assoc <- batchPCAcorr(isva_un,pdata[,-c(8)],ncol(isva_un))
 write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc_200k_fil.csv")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
-#create design matrices
-#^^^^^^^^^^^^^^^^^^^^^^^^
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#EWAS 
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 ####
 #All
 ####
 design_all <- model.matrix(~ Slide + Array + Bcell + CD4T + CD8T + Eos + Mono + NK + Neu + 
                            Sex + Age + MooreSoC + MasterGroupNo, pdata)
-############
-#All no BCC
-############
-design_all_no_BCC <-  model.matrix(~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
-#####
-#SVs
-#####
-design_svs <- model.matrix(~ SV1 + SV2 + SV3 + SV4 + SV5 + SV6 + SV7 + SV8 + SV9 + SV10 + SV11 +
-                           SV12 + SV13 + SV15 + SV17 + SV18 + SV19 + SV20 + SV21 + Age + 
-                           MooreSoC + MasterGroupNo, cbind(pdata,svs))
-
-###############
-#ISVs (unsup) 
-##############
-#+ bio vars (excluding sex) 
-design_isvs_un <- model.matrix(~ ISV1 + ISV3 + ISV4 + ISV5 + ISV6 + Sex + 
-                               Age + MooreSoC + MasterGroupNo,cbind(pdata,isva_un))
-
-#########
-#PCs
-#########
-#+ bio vars (excluding sex)
-design_pcs <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
-                          PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
-
-#^^^^^^^^^^^
-#run limma 
-#^^^^^^^^^^
-####
-#All
-####
 DMPs_all <- lmFit(norm_mval_fil,design_all)
 DMPs_all <- eBayes(DMPs_all)
 res_DMPs_all <- topTable(DMPs_all, coef = "MasterGroupNo2", number = Inf,
@@ -166,6 +143,7 @@ ggsave("../results/EPIC_EWAS_DMPs_all_QQ.png")
 ############
 #All no BCC
 ############
+design_all_no_BCC <-  model.matrix(~ Slide + Array + Sex + Age + MooreSoC + MasterGroupNo, pdata)
 
 DMPs_all_no_BCC <- lmFit(norm_mval_fil,design_all_no_BCC)
 DMPs_all_no_BCC  <- eBayes(DMPs_all_no_BCC )
@@ -186,6 +164,10 @@ ggsave("../results/EPIC_EWAS_DMPs_all_NO_BCC_QQ.png")
 #####
 #SVs
 #####
+design_svs <- model.matrix(~ SV1 + SV2 + SV3 + SV4 + SV5 + SV6 + SV7 + SV8 + SV9 + SV10 + SV11 +
+                           SV12 + SV13 + SV15 + SV17 + SV18 + SV19 + SV20 + SV21 + Age + 
+                           MooreSoC + MasterGroupNo, cbind(pdata,svs))
+
 DMPs_svs <- lmFit(norm_mval_fil,design_svs)
 DMPs_svs <- eBayes(DMPs_svs)
 res_DMPs_svs <- topTable(DMPs_svs, coef = "MasterGroupNo2", number = Inf,
@@ -203,11 +185,12 @@ theme(plot.title = element_text(colour="black", size=10)) +
 annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_svs_QQ.png")
 
-
 ###############
 #ISVs (unsup) 
 ##############
 #+ bio vars (excluding sex) 
+design_isvs_un <- model.matrix(~ ISV1 + ISV3 + ISV4 + ISV5 + ISV6 + Sex + 
+                               Age + MooreSoC + MasterGroupNo,cbind(pdata,isva_un))
 
 DMPs_isvs <- lmFit(norm_mval_fil,design_isvs_un)
 DMPs_isvs <- eBayes(DMPs_isvs)
@@ -221,7 +204,7 @@ write.csv(as.data.frame(res_DMPs_isvs)[1:100,],file="../results/EPIC_EWAS_top_10
 lambda <- signif(median(qchisq(1-res_DMPs_isvs$P.Value,1))/qchisq(0.5,1),5)
 lambda <- paste0(paste0(expression(lambda)," = "),lambda)
 ggQQplot(res_DMPs_isvs$P.Value,ylim = c(0,8)) + theme_bw() + 
-ggtitle("M ~ isvs + Sex + Age + MooreSoC + MasterGroupNo") + 
+ggtitle("M ~ ISVs + Sex + Age + MooreSoC + MasterGroupNo") + 
 theme(plot.title = element_text(colour="black", size=10)) +
 annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_isvs_QQ.png")
@@ -229,6 +212,8 @@ ggsave("../results/EPIC_EWAS_DMPs_isvs_QQ.png")
 #########
 #PCs
 #########
+design_pcs <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+                          PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + MasterGroupNo, cbind(pdata,pcs))
 
 DMPs_pcs <- lmFit(norm_mval_fil,design_pcs)
 DMPs_pcs <- eBayes(DMPs_pcs)
@@ -242,14 +227,29 @@ write.csv(as.data.frame(res_DMPs_pcs)[1:100,],file="../results/EPIC_EWAS_top_100
 lambda <- signif(median(qchisq(1-res_DMPs_pcs$P.Value,1))/qchisq(0.5,1),5)
 lambda <- paste0(paste0(expression(lambda)," = "),lambda)
 ggQQplot(res_DMPs_pcs$P.Value,ylim = c(0,8)) + theme_bw() + 
-ggtitle("M ~ pcs + Age + MooreSoC + MasterGroupNo") + 
+ggtitle("M ~ PCs + Age + MooreSoC + MasterGroupNo") + 
 theme(plot.title = element_text(colour="black", size=10)) +
 annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#pathway analysis
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+gst_all <- gometh(sig.cpg=res_DMPs_all$Name[1:1000],collection="GO",array.type="EPIC")
+gst_all_no_bcc <- gometh(sig.cpg=res_DMPs_all_no_BCC$Name[1:1000],collection="GO",array.type="EPIC")
+gst_svs <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="GO",array.type="EPIC")
+gst_isvs <- gometh(sig.cpg=res_DMPs_isvs$Name[1:1000],collection="GO",array.type="EPIC")
+gst_pcs <- gometh(sig.cpg=res_DMPs_pcs$Name[1:1000],collection="GO",array.type="EPIC")
+
+write.csv(topGO(gst_all),file="../results/EPIC_EWAS_GO_pathways_all.csv")
+write.csv(topGO(gst_all_no_bcc),file="../results/EPIC_EWAS_GO_pathways_all_no_BCC.csv")
+write.csv(topGO(gst_svs),file="../results/EPIC_EWAS_GO_pathways_SVs.csv")
+write.csv(topGO(gst_isvs),file="../results/EPIC_EWAS_GO_pathways_ISVs.csv")
+write.csv(topGO(gst_pcs),file="../results/EPIC_EWAS_GO_pathways_PCs.csv")
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
-#^^^^^^^^^^^^^^^^^^^^^^^^
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 #plot PCs  
 pcs_df <- cbind(sample_sheet, pcs[,1:4])
