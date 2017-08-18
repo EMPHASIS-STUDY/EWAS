@@ -266,6 +266,12 @@ write.csv(topKEGG(gst_isvs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_ISVs.c
 write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#regional analysis
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+DMRs_pcs <- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
+DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
