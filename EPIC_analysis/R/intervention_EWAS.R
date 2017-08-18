@@ -235,6 +235,9 @@ ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #pathway analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+###
+#GO
+###
 gst_all <- gometh(sig.cpg=res_DMPs_all$Name[1:1000],collection="GO",array.type="EPIC")
 gst_all_no_bcc <- gometh(sig.cpg=res_DMPs_all_no_BCC$Name[1:1000],collection="GO",array.type="EPIC")
 gst_svs <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="GO",array.type="EPIC")
@@ -246,6 +249,21 @@ write.csv(topGO(gst_all_no_bcc),file="../results/EPIC_EWAS_GO_pathways_all_no_BC
 write.csv(topGO(gst_svs),file="../results/EPIC_EWAS_GO_pathways_SVs.csv")
 write.csv(topGO(gst_isvs),file="../results/EPIC_EWAS_GO_pathways_ISVs.csv")
 write.csv(topGO(gst_pcs),file="../results/EPIC_EWAS_GO_pathways_PCs.csv")
+
+#####
+#KEGG
+#####
+gst_all_KEGG <- gometh(sig.cpg=res_DMPs_all$Name[1:1000],collection="KEGG",array.type="EPIC")
+gst_all_no_bcc_KEGG <- gometh(sig.cpg=res_DMPs_all_no_BCC$Name[1:1000],collection="KEGG",array.type="EPIC")
+gst_svs_KEGG <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="KEGG",array.type="EPIC")
+gst_isvs_KEGG <- gometh(sig.cpg=res_DMPs_isvs$Name[1:1000],collection="KEGG",array.type="EPIC")
+gst_pcs_KEGG <- gometh(sig.cpg=res_DMPs_pcs$Name[1:1000],collection="KEGG",array.type="EPIC")
+
+write.csv(topKEGG(gst_all_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_all.csv")
+write.csv(topKEGG(gst_all_no_bcc_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_all_no_BCC.csv")
+write.csv(topKEGG(gst_svs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_SVs.csv")
+write.csv(topKEGG(gst_isvs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_ISVs.csv")
+write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
