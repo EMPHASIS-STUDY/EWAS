@@ -272,6 +272,10 @@ DMRs_pcs <- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",pcuto
 DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
 DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
 
+write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
+write.csv(DMRs_svs$results,file="../results/EPIC_EWAS_DMRs_SVs.csv")
+write.csv(DMRs_isvs$results,file="../results/EPIC_EWAS_DMRs_ISVs.csv")
+                           
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
