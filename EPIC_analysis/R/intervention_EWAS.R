@@ -164,9 +164,8 @@ ggsave("../results/EPIC_EWAS_DMPs_all_NO_BCC_QQ.png")
 #####
 #SVs
 #####
-design_svs <- model.matrix(~ SV1 + SV2 + SV3 + SV4 + SV5 + SV6 + SV7 + SV8 + SV9 + SV10 + SV11 +
-                           SV12 + SV13 + SV15 + SV17 + SV18 + SV19 + SV20 + SV21 + Age + 
-                           MooreSoC + MasterGroupNo, cbind(pdata,svs))
+design_svs <- model.matrix(~ SV1 + SV2 + SV3 + SV4 + SV5 + SV6 + SV7 + SV8 + SV9 + SV10 + SV11 + 
+                           SV12 + SV13 + SV15 + SV17 + SV19 + SV20 + Age + MooreSoC + MasterGroupNo, cbind(pdata,svs)
 
 DMPs_svs <- lmFit(norm_mval_fil,design_svs)
 DMPs_svs <- eBayes(DMPs_svs)
