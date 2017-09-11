@@ -16,10 +16,10 @@ library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
 library("gridExtra")
 library("ggplot2")
 
-source("ggQQplot.R")
-source("ggPCAplot.R")
+source("gamplotlib/ggQQplot.R")
+source("gamplotlib/ggPCAplot.R")
 source("ilEPICfilter.R")
-
+source("DMR.plot.R")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
