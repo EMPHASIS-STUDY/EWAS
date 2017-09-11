@@ -275,7 +275,17 @@ DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",pcu
 write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
 write.csv(DMRs_svs$results,file="../results/EPIC_EWAS_DMRs_SVs.csv")
 write.csv(DMRs_isvs$results,file="../results/EPIC_EWAS_DMRs_ISVs.csv")
-                           
+
+#annotated regions
+DMRs_pcs_annot <- extractRanges(DMRs_pcs, genome = "hg19")
+write.csv(DMRs_pcs_annot,file="../results/EPIC_EWAS_DMRs_annot_PCs.csv")
+        
+#visualization
+type <- pdata$MasterGroupNo
+groups <- c("1"="#F97E86", "2"="#0F7597")
+cols <- groups[as.character(type)]
+DMR.plot(ranges=DMRs_pcs_annot, dmr=1, CpGs=norm_beta_fil, what="Beta", arraytype = "EPIC",
+phen.col=cols, genome="hg19")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
