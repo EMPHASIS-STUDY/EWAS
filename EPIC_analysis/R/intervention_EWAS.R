@@ -233,7 +233,7 @@ annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#pathway analysis
+#Pathway analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ###
 #GO
@@ -268,7 +268,7 @@ write.csv(topKEGG(gst_isvs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_ISVs.c
 write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#regional analysis
+#Regional analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 DMRs_pcs <- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
@@ -285,15 +285,22 @@ DMRs_pcs_annot <- extractRanges(DMRs_pcs, genome = "hg19")
 write.csv(DMRs_pcs_annot,file="../results/EPIC_EWAS_DMRs_annot_PCs.csv")
         
 #visualizations
-#DMR plot                           
+#DMR plots                           
 type <- pdata$MasterGroupNo
 groups <- c("1"="#F97E86", "2"="#0F7597")
 cols <- groups[as.character(type)]
 DMR.plot(ranges=DMRs_pcs_annot, dmr=1, CpGs=norm_beta_fil, what="Beta", arraytype = "EPIC",
-phen.col=cols, genome="hg19")
+         phen.col=cols, genome="hg19")
+DMR.plot(ranges=DMRs_pcs_annot, dmr=277, CpGs=norm_beta_fil, what="Beta", arraytype = "EPIC",
+         phen.col=cols, genome="hg19")
+DMR.plot(ranges=DMRs_pcs_annot, dmr=2, CpGs=norm_beta_fil, what="Beta", arraytype = "EPIC",
+         phen.col=cols, genome="hg19")
+                           
 #vplot
-ggVplot(DMRs_pcs$results[,c(3,4,5)],fdrcut=0.1, lfccut=0.05, xlim=c(-0.1,0.1)) + theme_gamplotlib()
- + scale_fill_gamplotlib() + scale_color_gamplotlib() + xlab("fold change")                           
+ggVplot(DMRs_pcs$results[,c(3,4,5)],fdrcut=0.1, lfccut=0.05, xlim=c(-0.1,0.1),n=DMRs_pcs$results[,2]) + theme_gamplotlib()
+ + scale_fill_gamplotlib() + scale_color_gamplotlib() + xlab("fold change")    
+ggsave("../results/DMR_pcs_fc_vplot.pdf")          
+                           
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
