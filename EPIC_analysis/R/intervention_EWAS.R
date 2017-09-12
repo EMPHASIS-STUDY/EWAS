@@ -243,6 +243,7 @@ gst_svs <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="GO",array.type="
 gst_isvs <- gometh(sig.cpg=res_DMPs_isvs$Name[1:1000],collection="GO",array.type="EPIC")
 gst_pcs <- gometh(sig.cpg=res_DMPs_pcs$Name[1:1000],collection="GO",array.type="EPIC")
 
+#write results                           
 write.csv(topGO(gst_all),file="../results/EPIC_EWAS_GO_pathways_all.csv")
 write.csv(topGO(gst_all_no_bcc),file="../results/EPIC_EWAS_GO_pathways_all_no_BCC.csv")
 write.csv(topGO(gst_svs),file="../results/EPIC_EWAS_GO_pathways_SVs.csv")
@@ -258,6 +259,7 @@ gst_svs_KEGG <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="KEGG",array
 gst_isvs_KEGG <- gometh(sig.cpg=res_DMPs_isvs$Name[1:1000],collection="KEGG",array.type="EPIC")
 gst_pcs_KEGG <- gometh(sig.cpg=res_DMPs_pcs$Name[1:1000],collection="KEGG",array.type="EPIC")
 
+#write results
 write.csv(topKEGG(gst_all_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_all.csv")
 write.csv(topKEGG(gst_all_no_bcc_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_all_no_BCC.csv")
 write.csv(topKEGG(gst_svs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_SVs.csv")
@@ -272,6 +274,7 @@ DMRs_pcs <- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",pcuto
 DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
 DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
 
+#write results
 write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
 write.csv(DMRs_svs$results,file="../results/EPIC_EWAS_DMRs_SVs.csv")
 write.csv(DMRs_isvs$results,file="../results/EPIC_EWAS_DMRs_ISVs.csv")
@@ -280,12 +283,16 @@ write.csv(DMRs_isvs$results,file="../results/EPIC_EWAS_DMRs_ISVs.csv")
 DMRs_pcs_annot <- extractRanges(DMRs_pcs, genome = "hg19")
 write.csv(DMRs_pcs_annot,file="../results/EPIC_EWAS_DMRs_annot_PCs.csv")
         
-#visualization
+#visualizations
+#DMR plot                           
 type <- pdata$MasterGroupNo
 groups <- c("1"="#F97E86", "2"="#0F7597")
 cols <- groups[as.character(type)]
 DMR.plot(ranges=DMRs_pcs_annot, dmr=1, CpGs=norm_beta_fil, what="Beta", arraytype = "EPIC",
 phen.col=cols, genome="hg19")
+#vplot
+ggVplot(DMRs_pcs$results[,c(3,4,5)],fdrcut=0.1, lfccut=0.05, xlim=c(-0.1,0.1)) + theme_gamplotlib()
+ + scale_fill_gamplotlib() + scale_color_gamplotlib() + xlab("fold change")                           
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
