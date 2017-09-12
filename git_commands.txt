@@ -25,3 +25,7 @@ git commit -a -m 'meffil latest & analysis plan & git commands'
 
 #push changes to repo master branch
 git push -u origin master
+
+#reset local repo (warning: will remove all local files that havent been added)
+git fetch --all
+git reset --hard origin/master
