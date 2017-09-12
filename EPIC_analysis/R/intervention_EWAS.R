@@ -17,6 +17,7 @@ library("gridExtra")
 library("ggplot2")
 
 source("gamplotlib/ggQQplot.R")
+source("gamplotlib/ggVplot.R")
 source("gamplotlib/ggPCAplot.R")
 source("ilEPICfilter.R")
 source("DMR.plot.R")
