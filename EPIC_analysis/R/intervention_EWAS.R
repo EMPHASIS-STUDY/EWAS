@@ -231,6 +231,31 @@ ggtitle("M ~ PCs + Age + MooreSoC + MasterGroupNo") +
 theme(plot.title = element_text(colour="black", size=10)) +
 annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
+                           
+#######################################
+#PCs with MasterGroup x SoC interaction 
+#######################################
+design_pcs_inter <- model.matrix(~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+                          PC11 + PC12 + PC13 + PC15 + Age + MooreSoC * MasterGroupNo, cbind(pdata,pcs))
+
+DMPs_pcs_inter <- lmFit(norm_mval_fil,design_pcs_inter)
+DMPs_pcs_inter <- eBayes(DMPs_pcs_inter)
+res_DMPs_pcs_inter <- topTable(DMPs_pcs_inter, coef = "MooreSoCrainy:MasterGroupNo2", number = Inf,
+                         genelist=anno_sub, sort.by="B")
+
+inter_main_group <- topTable(DMPs_pcs_inter, coef = "MasterGroupNo2", number = Inf, genelist=anno_sub, sort.by="B")
+inter_main_season <- topTable(DMPs_pcs_inter, coef = "MooreSoCrainy", number = Inf, genelist=anno_sub, sort.by="B")
+inter_group_season <- topTable(DMPs_pcs_inter, 
+                               coef = "MooreSoCrainy:MasterGroupNo2", number = Inf, genelist=anno_sub, sort.by="B")
+                           
+#QQplot
+lambda <- signif(median(qchisq(1-inter_main_group$P.Value,1))/qchisq(0.5,1),5)
+lambda <- paste0(paste0(expression(lambda)," = "),lambda)
+ggQQplot(inter_main_group$P.Value,ylim = c(0,8)) + theme_bw() + 
+ggtitle("M ~ PCs + Age + MooreSoC * MasterGroupNo") + 
+theme(plot.title = element_text(colour="black", size=10)) +
+annotate("text", x = 4, y = 8, label = lambda)
+ggsave("../results/EPIC_EWAS_DMPs_pcs_inter_QQ.png")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Pathway analysis
