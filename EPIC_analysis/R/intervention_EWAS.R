@@ -231,6 +231,21 @@ ggtitle("M ~ PCs + Age + MooreSoC + MasterGroupNo") +
 theme(plot.title = element_text(colour="black", size=10)) +
 annotate("text", x = 4, y = 8, label = lambda)
 ggsave("../results/EPIC_EWAS_DMPs_pcs_QQ.png")
+ 
+                           
+#add column for delta Beta
+add_delta_B <- function(res,beta,inter){
+  beta_res <- beta[match(res$Name,rownames(beta)),]
+  delta_B <- apply(beta_res,1, function(x){
+                      mean(x[which(inter == 2)]) -  mean(x[which(inter == 1)])})
+  delta_B <- cbind(delta_B)
+  res <- merge(res,delta_B,by.x='row.names',by.y='row.names') 
+  res <- res[with(res,order(-B)),]
+  return(res) 
+}
+
+res_DMPs_pcs_deltab <- add_delta_B(as.data.frame(res_DMPs_pcs)[1:100,],norm_beta_fil,pdata$MasterGroupNo)  
+write.csv(res_DMPs_pcs_deltab,file="../results/EPIC_EWAS_top_100_DMPs_pcs_deltab.csv") 
                            
 #######################################
 #PCs with MasterGroup x SoC interaction 
