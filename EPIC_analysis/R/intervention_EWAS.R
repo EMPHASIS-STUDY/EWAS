@@ -246,7 +246,13 @@ add_delta_B <- function(res,beta,inter){
 
 res_DMPs_pcs_deltab <- add_delta_B(as.data.frame(res_DMPs_pcs)[1:100,],norm_beta_fil,pdata$MasterGroupNo)  
 write.csv(res_DMPs_pcs_deltab,file="../results/EPIC_EWAS_top_100_DMPs_pcs_deltab.csv") 
-                           
+   
+#plot p distribution 
+ggplot(as.data.frame(res_DMPs_pcs),aes(P.Value)) +
+       geom_histogram(bins = 100) + ylim(0,30000) + xlim(-0.1,1.1) + 
+       scale_x_continuous(breaks = seq(0,1,by=0.25)) + theme_bw()
+ggsave("../results/EMPH_DMPs_PCs_pdist.pdf")
+
 #######################################
 #PCs with MasterGroup x SoC interaction 
 #######################################
