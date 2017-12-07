@@ -20,7 +20,7 @@
 
 fastEPICdmrcate <- function(mvals,design, annotation = c(array = "IlluminaHumanMethylationEPIC",
  			    annotation ="ilm10b2.hg19"),analysis.type="differential",
- 			    coef="variable",fdr=0.05, lambda=500, C=2, pcutoff=0.05,
+ 			    coef="variable",fdr=0.05, lambda=500, C=2, pcutoff=fdr,
  			    min.cpgs=2, mc.cores=1,...) {
 	
 	require("DMRcate")	
