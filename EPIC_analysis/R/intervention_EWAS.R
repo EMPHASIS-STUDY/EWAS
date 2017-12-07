@@ -314,12 +314,12 @@ write.csv(topKEGG(gst_isvs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_ISVs.c
 write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#Regional analysis
+#DM Regional analysis - DMRcate
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DMRs_pcs <- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
-DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
-DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",pcutoff=0.1, mc.cores=4)
+DMRs_pcs<- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)                 
+DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)
+DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)
 
 #write results
 write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
@@ -346,11 +346,30 @@ DMR.plot(ranges=DMRs_pcs_annot, dmr=2, CpGs=norm_beta_fil, what="Beta", arraytyp
 ggVplot(DMRs_pcs$results[,c(3,4,5)],fdrcut=0.1, lfccut=0.05, xlim=c(-0.1,0.1),n=DMRs_pcs$results[,2]) + theme_gamplotlib()
  + scale_fill_gamplotlib() + scale_color_gamplotlib() + xlab("fold change")    
 ggsave("../results/DMR_pcs_fc_vplot.pdf")          
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#DV Regional analysis - DMRcate
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#DM Regional analysis - combp
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+combp_DMPs_pcs <- res_DMPs_pcs 
+combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,(ncol(combp_DMPs_pcs) - 1))]
+combp_DMPs_pcs$end <- combp_DMPs_pcs$pos + 1
+combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,4,3)]
+combp_DMPs_pcs <- combp_DMPs_pcs[with(combp_DMPs_pcs,order(chr,pos)),]        
+colnames(combp_DMPs_pcs) <- c("chrom","start","end","p")                            
+write.table(combp_DMPs_pcs,file="../results/combp_DMPs_pcs.bed", sep="\t", row.names=F, quote=F)
+
+#run comb-p from command line with these params : -dist 1000 -seed 0.05
+#tail -n +2 combp_DMPs_pcs.bed > combp_DMPs_pcs_trim.bed
+#comb-p pipeline -c 4 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs_trim.bed
+                           
                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 #plot PCs  
 pcs_df <- cbind(sample_sheet, pcs[,1:4])
 
