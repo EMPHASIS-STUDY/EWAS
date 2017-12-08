@@ -321,9 +321,9 @@ write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv
 #########
 #DMRcate                           
 #########                  
-DMRs_pcs<- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)                 
-DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)
-DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)
+DMRs_pcs<- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",fdr=0.05,pcutoff=5e-2, mc.cores=8)                 
+DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",fdr=0.05,pcutoff=5e-2, mc.cores=8)
+DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",fdr=0.05,pcutoff=5e-2, mc.cores=8)
 
 #write results
 write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
