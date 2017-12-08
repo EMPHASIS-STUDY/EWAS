@@ -15,6 +15,7 @@ library("limma")
 library("IlluminaHumanMethylationEPICanno.ilm10b2.hg19")
 library("gridExtra")
 library("ggplot2")
+library("doParallel")
 
 source("gamplotlib/ggQQplot.R")
 source("gamplotlib/ggVplot.R")
@@ -314,12 +315,15 @@ write.csv(topKEGG(gst_isvs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_ISVs.c
 write.csv(topKEGG(gst_pcs_KEGG),file="../results/EPIC_EWAS_KEGG_pathways_PCs.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#DM Regional analysis - DMRcate
+#Regional analysis - DMRs
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
-DMRs_pcs<- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)                 
-DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)
-DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",fdr=0.05,pcutoff='fdr', mc.cores=4)
+#########
+#DMRcate                           
+#########                  
+DMRs_pcs<- fastEPICdmrcate(norm_mval_fil,design_pcs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)                 
+DMRs_svs <- fastEPICdmrcate(norm_mval_fil,design_svs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)
+DMRs_isvs <- fastEPICdmrcate(norm_mval_fil,design_isvs,coef="MasterGroupNo2",fdr=0.05,pcutoff=1e-4, mc.cores=4)
 
 #write results
 write.csv(DMRs_pcs$results,file="../results/EPIC_EWAS_DMRs_PCs.csv")
@@ -347,25 +351,42 @@ ggVplot(DMRs_pcs$results[,c(3,4,5)],fdrcut=0.1, lfccut=0.05, xlim=c(-0.1,0.1),n=
  + scale_fill_gamplotlib() + scale_color_gamplotlib() + xlab("fold change")    
 ggsave("../results/DMR_pcs_fc_vplot.pdf")          
 
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#DV Regional analysis - DMRcate
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+###########
+#bumphunter
+##########
+registerDoParallel(cores = 4)
                            
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#DM Regional analysis - combp
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+bump_DMRs_pcs <- bumphunter(norm_mval_fil, design_pcs, coef= ncol(DMPs_pcs$coefficients), 
+                 chr=anno_sub$chr, pos=anno_sub$pos,cutoff = 0.2,smooth=T, maxGap=1000, B=999,nullMethod='bootstrap')                           
+                           
+######
+#combp 
+######
 combp_DMPs_pcs <- res_DMPs_pcs 
-combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,(ncol(combp_DMPs_pcs) - 1))]
+combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,(ncol(combp_DMPs_pcs) - 1),(ncol(combp_DMPs_pcs) - 2))]
 combp_DMPs_pcs$end <- combp_DMPs_pcs$pos + 1
-combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,4,3)]
+combp_DMPs_pcs <- combp_DMPs_pcs[,c(1,2,5,4,3)]
 combp_DMPs_pcs <- combp_DMPs_pcs[with(combp_DMPs_pcs,order(chr,pos)),]        
-colnames(combp_DMPs_pcs) <- c("chrom","start","end","p")                            
+colnames(combp_DMPs_pcs) <- c("chrom","start","end","p","fdr")                            
 write.table(combp_DMPs_pcs,file="../results/combp_DMPs_pcs.bed", sep="\t", row.names=F, quote=F)
 
 #run comb-p from command line with these params : -dist 1000 -seed 0.05
-#tail -n +2 combp_DMPs_pcs.bed > combp_DMPs_pcs_trim.bed
-#comb-p pipeline -c 4 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs_trim.bed
+#nom p                           
+#comb-p pipeline -c 4 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs.bed
+#fdr                           
+#comb-p pipeline -c 5 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs.bed
+
+combp_DMRs_pcs <- read.table("../results/COMBP.anno.hg19.bed",head=1,sep="\t")
+combp_DMRs_pcs <- combp_DMRs_pcs[with(combp_DMRs_pcs,order(z_sidak_p)),]
+
+write.csv(combp_DMRs_pcs,file="../results/EPIC_EWAS_combp_DMRs_PCs.csv")
                            
+                           
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#Regional analysis - DVRs
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+                           
+
                            
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
