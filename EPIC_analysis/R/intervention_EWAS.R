@@ -357,7 +357,7 @@ ggsave("../results/DMR_pcs_fc_vplot.pdf")
 registerDoParallel(cores = 4)
                            
 bump_DMRs_pcs <- bumphunter(norm_mval_fil, design_pcs, coef= ncol(DMPs_pcs$coefficients), 
-                 chr=anno_sub$chr, pos=anno_sub$pos,cutoff = 0.2,smooth=T, maxGap=1000, B=999,nullMethod='bootstrap')                           
+                 chr=anno_sub$chr, pos=anno_sub$pos,cutoff = 0.2,pickCutoffQ=0.99,smooth=T, smoothFunction=loessByCluster, maxGap=1000, B=100,nullMethod='bootstrap')                           
                            
 ######
 #combp 
