@@ -371,23 +371,18 @@ colnames(combp_DMPs_pcs) <- c("chrom","start","end","p","fdr")
 write.table(combp_DMPs_pcs,file="../results/combp_DMPs_pcs.bed", sep="\t", row.names=F, quote=F)
 
 #run comb-p from command line with these params : -dist 1000 -seed 0.05
-#nom p                           
+#use nom p column (c4)                          
 #comb-p pipeline -c 4 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs.bed
-#fdr                           
-#comb-p pipeline -c 5 --seed 5e-2 --dist=1000 -p COMBP --anno hg19 combp_DMPs_pcs.bed
 
 combp_DMRs_pcs <- read.table("../results/COMBP.anno.hg19.bed",head=1,sep="\t")
 combp_DMRs_pcs <- combp_DMRs_pcs[with(combp_DMRs_pcs,order(z_sidak_p)),]
 
 write.csv(combp_DMRs_pcs,file="../results/EPIC_EWAS_combp_DMRs_PCs.csv")
-                           
-                           
+                                    
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Regional analysis - DVRs
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-                           
-
-                           
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                         
+#postponed
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Additional Plots
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
