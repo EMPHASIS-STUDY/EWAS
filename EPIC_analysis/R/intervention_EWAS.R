@@ -101,7 +101,6 @@ rownames(svs) <- colnames(norm_mval_200kvar)
 svs_pdata_assoc <- batchPCAcorr(svs,pdata[,-c(8)],ncol(svs))
 write.csv(svs_pdata_assoc,"../results/EMPH_EPIC_SVA_assoc_200k_fil.csv")
 
-
 #####################
 # ISVA
 #####################
@@ -113,7 +112,6 @@ rownames(isva_un) <- colnames(norm_mval_200kvar)
 
 isvs_un_pdata_assoc <- batchPCAcorr(isva_un,pdata[,-c(8)],ncol(isva_un))
 write.csv(isvs_un_pdata_assoc,"../results/EMPH_EPIC_ISV_un_assoc_200k_fil.csv")
-
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #EWAS 
@@ -281,6 +279,9 @@ ggsave("../results/EPIC_EWAS_DMPs_pcs_inter_QQ.png")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Pathway analysis
+# originally performed using top 1000, later rerun using same 
+# threshold from enrichment analysis (p < 0.05, delta Beta > 0.02)
+# (see posthoc script)                           
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 ###
 #GO
@@ -290,7 +291,7 @@ gst_all_no_bcc <- gometh(sig.cpg=res_DMPs_all_no_BCC$Name[1:1000],collection="GO
 gst_svs <- gometh(sig.cpg=res_DMPs_svs$Name[1:1000],collection="GO",array.type="EPIC")
 gst_isvs <- gometh(sig.cpg=res_DMPs_isvs$Name[1:1000],collection="GO",array.type="EPIC")
 gst_pcs <- gometh(sig.cpg=res_DMPs_pcs$Name[1:1000],collection="GO",array.type="EPIC")
-
+                           
 #write results                           
 write.csv(topGO(gst_all),file="../results/EPIC_EWAS_GO_pathways_all.csv")
 write.csv(topGO(gst_all_no_bcc),file="../results/EPIC_EWAS_GO_pathways_all_no_BCC.csv")
@@ -382,9 +383,10 @@ write.csv(combp_DMRs_pcs,file="../results/EPIC_EWAS_combp_DMRs_PCs.csv")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #Regional analysis - DVRs
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^                         
-#postponed
+#not being performed
+                           
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#Additional Plots
+#Additional QC plots etc
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #plot PCs  
 pcs_df <- cbind(sample_sheet, pcs[,1:4])
@@ -408,26 +410,3 @@ g_legend<-function(a.gplot){
 legr1 <- g_legend(p3l)
 grid.arrange(p1,p2,p3,legr1,nrow=1,heights=c(2),widths=c(2,2,2,1.1))
 dev.off()
-
-#sentrix_row
-pdf(file="../results/ENID_PCS_sentrix_row.pdf", onefile=FALSE)
-p1 <- ggPCAplot(pcs_df, pcs=c(1,2), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p2 <- ggPCAplot(pcs_df, pcs=c(1,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3 <- ggPCAplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3l <- ggPCAplot(pcs_df, pcs=c(2,3), batch="sentrix_row",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
-
-legr1 <-g_legend(p3l)
-grid.arrange(p1,p2,p3,legr1,nrow=1,heights=c(2),widths=c(2,2,2,1.1))
-dev.off()
-
-#Sample plate
-pdf(file="../results/ENID_PCS_Sample_Plate.pdf", onefile=FALSE)
-p1 <- ggPCAplot(pcs_df, pcs=c(1,2), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p2 <- ggPCAplot(pcs_df, pcs=c(1,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3 <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) + theme(legend.position="none")
-p3l <- ggPCAplot(pcs_df, pcs=c(2,3), batch="Sample_Plate",pal=pal) + theme_bw() + coord_fixed(ratio=1) 
-legr1 <-g_legend(p3l)
-grid.arrange(p1,p2,p3,legr1,nrow=1,heights=c(2),widths=c(2,2,2,1.1))
-dev.off()
-
-#TODO - remaining vars
