@@ -4,12 +4,12 @@
 #inputs: matrix of methylation beta values (EPIC), matrix of SNP genotypes (GSA),
 #        phenotype data
 #
-# authors. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
-#          Ashutosh Singh Tomar
-#          Prachand Issarapu
-# affiliations. MRC ING, LSHTM
-#               CSIR, CCMB
+# authors. Ayden Saffari <ayden.saffari@lshtm.ac.uk> (MRC ING, LSHTM)
+#          Ashutosh Singh Tomar (CSIR, CCMB)
+#          Prachand Issarapu (CSIR, CCMB)
+#               
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
 library("plyr")
 library("GEM")
 library("reshape2")
@@ -17,7 +17,6 @@ library("reshape2")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
 ##########
 #load data
 ##########
@@ -35,7 +34,7 @@ GMB_SNPs <- read.table("../data/GSA_GMB_PLINKfiltered_geno_t.traw", sep="\t", he
 GMB_SNPs <- GMB_SNPs[,-c(1,3,4,5,6)]
 
 #############################
-#summary stats for genotypes
+#produce summary stats for genotypes
 #############################
 summary_table <- apply(GMB_SNPs[,-1],1,function(x){summary(as.factor(x))})
 summary_table <- ldply(summary_table,function(s){t(data.frame(unlist(s)))})
@@ -56,7 +55,7 @@ length(which((is.na(summary_table_fil$`0`)) & (is.na(summary_table_fil$`2`)) &
 
 ##########################
 #reshape GSA data for GEM
-############################
+###########################
 SNPs <- GMB_SNPs[,1,drop=F] 
 GMB_SNPs <- GMB_SNPs[,-1]
 
@@ -143,7 +142,7 @@ write.table(cov_num,"../data/GMB_cov.txt",sep="\t")
 write.table(rbind(cov_num,env_num),"../data/GMB_gxe.txt",sep="\t")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# run GEM
+# run GEM mQTL analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 GEM_Emodel("../data/GMB_env.txt", "../data/GMB_cov.txt", "../data/GMB_CpGs.txt",
            1,"../results/GEM/Result_Emodel.txt", "../results/GEM/Emodel_QQ.txt", 
