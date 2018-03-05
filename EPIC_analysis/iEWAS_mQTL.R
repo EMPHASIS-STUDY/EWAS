@@ -4,8 +4,11 @@
 #inputs: matrix of methylation beta values (EPIC), matrix of SNP genotypes (GSA),
 #        phenotype data
 #
-# author. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
+# authors. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
+#          Ashutosh Singh Tomar
+#          Prachand Issarapu
 # affiliations. MRC ING, LSHTM
+#               CSIR, CCMB
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 library("plyr")
 library("GEM")
