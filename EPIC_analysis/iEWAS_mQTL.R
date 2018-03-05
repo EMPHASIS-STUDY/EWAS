@@ -155,10 +155,13 @@ GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.tx
 
 #TODOs
 
-
+#Run regression with genotype and interaction
+#frequency plots
+#biallelic plots
 #Run through analysis with example dataset
 #Limit to cis within 5 Kb
 #Rerun with all probes in DMRs
 #Check GE number of tests
-#Run regression with genotype and interaction
 #Try with season of conception as exposure
+
+#check SNP functional role - TF binding and eQTL 
