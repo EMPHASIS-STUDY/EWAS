@@ -22,15 +22,15 @@ library("reshape2")
 ##########
 pdata <- readRDS("../R_objects/pdata.rds")
 res_DMPs_pcs <- readRDS("../R_objects/res_DMPs_pcs.rds")
+DMRs_CpGs <- readRDS("../R_objects/EMPH_GMB_DMRs_CpGs.rds")
 norm_beta_fil <- readRDS("../R_objects/norm_beta_fil.rds")
-sig_norm_beta_fil <- norm_beta_fil[which(rownames(norm_beta_fil) %in% 
-                                  res_DMPs_pcs$Name[res_DMPs_pcs$adj.P.Val < 0.1]),]
-
+GMB_CpGs <- norm_beta_fil[which(rownames(norm_beta_fil) %in% 
+                          unique(c(res_DMPs_pcs$Name[res_DMPs_pcs$adj.P.Val < 0.1],DMRs_CpGs))),]
 pcs <- readRDS("../R_objects/pcs.rds")
 pdata <- cbind(pdata,pcs[,1:15])
 GSA_sample_sheet <- read.csv("/data/GSA/emphasis/EMPHASIS_GMB_GSA_Samplesheet.csv")
 
-GMB_SNPs <- read.table("../data/GSA_GMB_PLINKfiltered_geno_t.traw", sep="\t", head=T)
+GMB_SNPs <- read.table("../data/GSA_GMB_PLINKfiltered_a_hwe_geno_maf_recodeA_t.traw", sep="\t", head=T)
 GMB_SNPs <- GMB_SNPs[,-c(1,3,4,5,6)]
 
 #############################
@@ -60,7 +60,7 @@ SNPs <- GMB_SNPs[,1,drop=F]
 GMB_SNPs <- GMB_SNPs[,-1]
 
 #edit sample names to match those in sample sheet/beta matrix
-colnames(GMB_SNPs)[-1] <- paste0("2",sapply(colnames(GMB_SNPs)[-1],
+colnames(GMB_SNPs) <- paste0("2",sapply(colnames(GMB_SNPs),
                                             function(x){strsplit(x,"X?[0:9]*_2")[[1]][2]}))
 
 #match sample order in sample sheet to GSA data
@@ -78,42 +78,41 @@ colnames(GMB_SNPs) <- GSA_sample_sheet$Sample.ID[
 
 #add column for probe names back in
 GMB_SNPs <- cbind(SNPs,GMB_SNPs)
-rownames(GMB_SNPs) <- GMB_SNPs$ID
+rownames(GMB_SNPs) <- GMB_SNPs$SNP
 GMB_SNPs <- GMB_SNPs[,-1]
 
 ###########################
 #reshape EPIC data for GEM
 ############################
 #replace arrays with sample IDs for EPIC array
-sig_norm_beta_fil <- sig_norm_beta_fil[,match(rownames(pdata),
-                                           colnames(sig_norm_beta_fil))]
-colnames(sig_norm_beta_fil) <- pdata$Subject_ID[colnames(
-                                              sig_norm_beta_fil) == rownames(pdata)]
-sig_norm_beta_fil <- as.data.frame(sig_norm_beta_fil)
+GMB_CpGs <- GMB_CpGs[,match(rownames(pdata),colnames(GMB_CpGs))]
+colnames(GMB_CpGs) <- pdata$Subject_ID[colnames(GMB_CpGs) == rownames(pdata)]
+GMB_CpGs <- as.data.frame(GMB_CpGs)
 
-#add ID column and move to 1
-sig_norm_beta_fil$ID <- rownames(sig_norm_beta_fil)
-sig_norm_beta_fil <- sig_norm_beta_fil[,c(ncol(sig_norm_beta_fil),
-                                          1:(ncol(sig_norm_beta_fil) - 1))]
-GMB_CpGs <- sig_norm_beta_fil
+#dont need to do - add ID column and move to 1
+#GMB_CpGs$ID <- rownames(GMB_CpGs)
+#GMB_CpGs <- GMB_CpGs[,c(ncol(GMB_CpGs),1:(ncol(GMB_CpGs) - 1))]
 
 GMB_SNPs <- GMB_SNPs[,colnames(GMB_SNPs) %in% colnames(GMB_CpGs)]
-
-
 GMB_CpGs <- GMB_CpGs[,match(colnames(GMB_SNPs),colnames(GMB_CpGs))]
 
-rownames(GMB_CpGs) <- GMB_CpGs$ID
-GMB_CpGs <- GMB_CpGs[,-1]
+#rownames(GMB_CpGs) <- GMB_CpGs$ID
+#GMB_CpGs <- GMB_CpGs[,-1]
 
 all(colnames(GMB_SNPs) == colnames(GMB_CpGs))
 dim(GMB_CpGs)
 dim(GMB_SNPs)
 
 #match pdata sample order to GSA and EPIC
-pdata <- pdata[match(as.factor(colnames(GMB_SNPs)[-1]),pdata$Subject_ID),]
+pdata <- pdata[match(as.factor(colnames(GMB_SNPs)),pdata$Subject_ID),]
+all(colnames(GMB_SNPs) == pdata$Subject_ID)
+all(colnames(GMB_CpGs) == pdata$Subject_ID)
 dim(pdata)
 
-#create env and cov object
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# run GEM mQTL analysis
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#create env and cov objects
 env <- t(pdata[,colnames(pdata) == "MasterGroupNo",drop=F])
 
 cov <- pdata[,colnames(pdata) %in% 
@@ -141,9 +140,7 @@ write.table(env_num,"../data/GMB_env.txt",sep="\t")
 write.table(cov_num,"../data/GMB_cov.txt",sep="\t")
 write.table(rbind(cov_num,env_num),"../data/GMB_gxe.txt",sep="\t")
 
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# run GEM mQTL analysis
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#run GEM models
 GEM_Emodel("../data/GMB_env.txt", "../data/GMB_cov.txt", "../data/GMB_CpGs.txt",
            1,"../results/GEM/Result_Emodel.txt", "../results/GEM/Emodel_QQ.txt", 
            savePlot=T)
@@ -164,12 +161,12 @@ summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC
 PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs10239100 * MasterGroupNo,GxE_reg_top))
 
 #TODOs
+#Rerun with all probes in DMRs
 #frequency plots
 #biallelic plots
-#Run through analysis with example dataset
 #Limit to cis within 5 Kb
-#Rerun with all probes in DMRs
 #Check GE number of tests
 #Try with season of conception as exposure
+#Run through analysis with example dataset
 
 #check SNP functional role - TF binding and eQTL 
