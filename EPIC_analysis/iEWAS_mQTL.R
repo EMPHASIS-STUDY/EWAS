@@ -153,9 +153,17 @@ GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.tx
              1, "../results/GEM/Result_GEmodel.txt", topKplot = 1, savePlot=T)
 
 
-#TODOs
-
 #Run regression with genotype and interaction
+GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) == "rs10239100",]),
+t(GMB_CpGs[rownames(GMB_CpGs) == "cg20673840",]))
+
+GxE_reg_top <- merge(GxE_reg_top,pdata,by.x='row.names',by.y='Subject_ID')
+GxE_reg_top$rs10239100 <- as.factor(GxE_reg_top$rs10239100)
+
+summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs10239100 * MasterGroupNo,GxE_reg_top))
+
+#TODOs
 #frequency plots
 #biallelic plots
 #Run through analysis with example dataset
