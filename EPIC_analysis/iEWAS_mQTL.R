@@ -185,7 +185,7 @@ GxE_reg_top_fil <- GxE_reg_top[,colnames(GxE_reg_top) %in%
 GxE_reg_top_fil <- na.omit(GxE_reg_top_fil) 
 colnames(GxE_reg_top_fil)[5] <- "intervention"
 GxE_reg_top_fil$intervention <- revalue(GxE_reg_top_fil$intervention, c("1"="intervention","2"="control"))
-levels(GxE_reg_top_fil$intervention) <- relevel(GxE_reg_top_fil$intervention,"control")
+GxE_reg_top_fil$intervention <- relevel(GxE_reg_top_fil$intervention,"control")
 GxE_reg_top_fil$rs10239100 <- as.factor(GxE_reg_top_fil$rs10239100)
 GxE_reg_top_fil$rs1423249 <- as.factor(GxE_reg_top_fil$rs1423249)
 GxE_reg_top_fil$rs10239100 <- revalue(GxE_reg_top_fil$rs10239100, c("0"="AA","1"="AC","2"="CC"))
@@ -196,14 +196,14 @@ ggplot(GxE_reg_top_fil, aes(intervention,cg20673840)) +
        colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs10239100) + 
        theme_gamplotlib() + theme(strip.background = element_blank()) + 
        ggtitle("cg20673840 ~ rs10239100:intervention")
-ggsave()
+ggsave("../results/GMB_mQTL_cg20673840_rs10239100_GxE_scatter.pdf",height=7,width=7)
 
 ggplot(GxE_reg_top_fil, aes(intervention,cg20673840)) + 
        geom_point(color="#264049") + stat_summary(aes(y = cg20673840,group=intervention), fun.y=mean,
        colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs1423249) + 
        theme_gamplotlib() + theme(strip.background = element_blank()) + 
        ggtitle("cg20673840 ~ rs1423249:intervention")
-ggsave()
+ggsave("../results/GMB_mQTL_cg20673840_rs1423249_GxE_scatter.pdf",height=7,width=7)
 #TODOs
 #Try with season of conception as exposure
 #use imputed data
