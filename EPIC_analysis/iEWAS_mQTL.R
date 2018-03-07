@@ -14,6 +14,7 @@ library("GEM")
 library("plyr")
 library("reshape2")
 library("ggplot2")
+library("gamplotlib")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #initialization
@@ -155,13 +156,12 @@ GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.tx
              1, "../results/GEM/Result_GEmodel.txt", topKplot = 1, savePlot=T)
 
 #Run regression with genotype and interaction
-GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100")]),
+GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100"),]),
                      t(GMB_CpGs[rownames(GMB_CpGs) == "cg20673840",]))
 
 GxE_reg_top <- merge(GxE_reg_top,pdata,by.x='row.names',by.y='Subject_ID')
 GxE_reg_top$rs10239100 <- as.factor(GxE_reg_top$rs10239100)
 GxE_reg_top$rs1423249 <- as.factor(GxE_reg_top$rs1423249)
-
 
 summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
            PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
@@ -179,6 +179,31 @@ colnames(histo_geno_inter)[1] <- "Genotype:MasterGroupNo"
 ggplot(histo_geno_inter, aes(x=`Genotype:MasterGroupNo`,y=Freq)) + geom_histogram(stat="identity")
 ggsave("GMB_mQTL_rs1423249_geno_inter_histogram.pdf",height=7,width=7)
 
+#meth x inter x geno plot
+GxE_reg_top_fil <- GxE_reg_top[,colnames(GxE_reg_top) %in% 
+       c("Row.names","rs10239100","rs1423249","cg20673840","MasterGroupNo")]
+GxE_reg_top_fil <- na.omit(GxE_reg_top_fil) 
+colnames(GxE_reg_top_fil)[5] <- "intervention"
+GxE_reg_top_fil$intervention <- revalue(GxE_reg_top_fil$intervention, c("1"="intervention","2"="control"))
+levels(GxE_reg_top_fil$intervention) <- relevel(GxE_reg_top_fil$intervention,"control")
+GxE_reg_top_fil$rs10239100 <- as.factor(GxE_reg_top_fil$rs10239100)
+GxE_reg_top_fil$rs1423249 <- as.factor(GxE_reg_top_fil$rs1423249)
+GxE_reg_top_fil$rs10239100 <- revalue(GxE_reg_top_fil$rs10239100, c("0"="AA","1"="AC","2"="CC"))
+GxE_reg_top_fil$rs1423249 <- revalue(GxE_reg_top_fil$rs1423249, c("0"="AA","1"="AG","2"="GG"))
+
+ggplot(GxE_reg_top_fil, aes(intervention,cg20673840)) + 
+       geom_point(color="#264049") + stat_summary(aes(y = cg20673840,group=intervention), fun.y=mean,
+       colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs10239100) + 
+       theme_gamplotlib() + theme(strip.background = element_blank()) + 
+       ggtitle("cg20673840 ~ rs10239100:intervention")
+ggsave()
+
+ggplot(GxE_reg_top_fil, aes(intervention,cg20673840)) + 
+       geom_point(color="#264049") + stat_summary(aes(y = cg20673840,group=intervention), fun.y=mean,
+       colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs1423249) + 
+       theme_gamplotlib() + theme(strip.background = element_blank()) + 
+       ggtitle("cg20673840 ~ rs1423249:intervention")
+ggsave()
 #TODOs
 #Try with season of conception as exposure
 #use imputed data
