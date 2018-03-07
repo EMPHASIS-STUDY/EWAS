@@ -110,6 +110,10 @@ all(colnames(GMB_SNPs) == pdata$Subject_ID)
 all(colnames(GMB_CpGs) == pdata$Subject_ID)
 dim(pdata)
 
+#try with just ESM1
+ESM1_DMR <- res_DMPs_pcs[res_DMPs_pcs$Name %in% DMRs_CpGs,13,drop=F]
+ESM1_DMR <- ESM1_DMR[grep("ESM1",ESM1_DMR$GencodeCompV12_NAME),,drop=F]
+GMB_CpGs <- GMB_CpGs[rownames(GMB_CpGs) %in% rownames(ESM1_DMR),]
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # run GEM mQTL analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -143,7 +147,7 @@ write.table(rbind(cov_num,env_num),"../data/GMB_gxe.txt",sep="\t")
 
 #run GEM models
 GEM_Emodel("../data/GMB_env.txt", "../data/GMB_cov.txt", "../data/GMB_CpGs.txt",
-           1,"../results/GEM/Result_Emodel.txt", "../results/GEM/Emodel_QQ.txt", 
+           1,"../results/GEM/Result_Emodel.txt", "../results/GEM/Emodel_QQ.jpg", 
            savePlot=T)
 GEM_Gmodel("../data/GMB_SNPs.txt","../data/GMB_cov.txt","../data/GMB_CpGs.txt",
           1e-04, "../results/GEM/Result_Gmodel.txt")
@@ -151,18 +155,18 @@ GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.tx
              1, "../results/GEM/Result_GEmodel.txt", topKplot = 1, savePlot=T)
 
 #Run regression with genotype and interaction
-GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) == c("rs1423249","rs10239100"),]),
-t(GMB_CpGs[rownames(GMB_CpGs) == "cg20673840",]))
+GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100")]),
+                     t(GMB_CpGs[rownames(GMB_CpGs) == "cg20673840",]))
 
 GxE_reg_top <- merge(GxE_reg_top,pdata,by.x='row.names',by.y='Subject_ID')
 GxE_reg_top$rs10239100 <- as.factor(GxE_reg_top$rs10239100)
 GxE_reg_top$rs1423249 <- as.factor(GxE_reg_top$rs1423249)
 
+
 summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
            PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
            rs10239100 * MasterGroupNo + 
-           rs1423249 * MasterGroupNo +
-           rs76645606 * MasterGroupNo,GxE_reg_top))
+           rs1423249 * MasterGroupNo,GxE_reg_top))
 
 #frequency plots
 histo_geno_inter <- as.data.frame(table(GxE_reg_top$rs10239100:GxE_reg_top$MasterGroupNo))
@@ -177,6 +181,4 @@ ggsave("GMB_mQTL_rs1423249_geno_inter_histogram.pdf",height=7,width=7)
 
 #TODOs
 #Try with season of conception as exposure
-#Run through analysis with example dataset
 #use imputed data
-#check SNP functional role - TF binding and eQTL 
