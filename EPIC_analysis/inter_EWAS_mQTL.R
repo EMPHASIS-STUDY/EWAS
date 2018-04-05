@@ -156,8 +156,9 @@ GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.tx
              1, "../results/GEM/Result_GEmodel.txt", topKplot = 1, savePlot=T)
 
 #Run regression with genotype and interaction
-GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100"),]),
-                     t(GMB_CpGs[rownames(GMB_CpGs) == "cg20673840",]))
+GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100","rs278368"),]),
+                     t(GMB_CpGs[rownames(GMB_CpGs) %in% c("cg06837426","cg20673840","cg20451680",
+                                                        "cg14972155","cg21180956","cg20059697","cg13106512"),]))
 
 GxE_reg_top <- merge(GxE_reg_top,pdata,by.x='row.names',by.y='Subject_ID')
 #GxE_reg_top$rs10239100 <- as.factor(GxE_reg_top$rs10239100)
@@ -204,6 +205,34 @@ ggplot(GxE_reg_top_fil, aes(intervention,cg20673840)) +
        theme_gamplotlib() + theme(strip.background = element_blank()) + 
        ggtitle("cg20673840 ~ rs1423249:intervention")
 ggsave("../results/GMB_mQTL_cg20673840_rs1423249_GxE_scatter.pdf",height=7,width=7)
-#TODOs
-#Try with season of conception as exposure
-#use imputed data
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# run additional analyses
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#mQTLs
+#rs1423249
+summary(lm(cg06837426 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg20451680 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg21180956 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg20059697 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+summary(lm(cg13106512 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+
+#GxEs
+summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
+           rs10239100 * MasterGroupNo + 
+           rs1423249 * MasterGroupNo,GxE_reg_top))
+
+summary(lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
+           rs278368 * MasterGroupNo + 
+           rs1423249 * MasterGroupNo,GxE_reg_top))
