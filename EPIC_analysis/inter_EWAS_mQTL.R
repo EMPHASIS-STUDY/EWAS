@@ -209,30 +209,39 @@ ggsave("../results/GMB_mQTL_cg20673840_rs1423249_GxE_scatter.pdf",height=7,width
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # run additional analyses
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#mQTLs
+#G only mQTLs
+######
 #rs1423249
-summary(lm(cg06837426 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg20451680 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg21180956 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg20059697 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
-summary(lm(cg13106512 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 * MasterGroupNo,GxE_reg_top))
+
+mQTL_cpgs <- c("cg06837426","cg20673840","cg20451680","cg14972155","cg21180956","cg20059697","cg13106512")
+res_mQTL_cpgs  <- lapply(mQTL_cpgs, function(x) {
+                         lm(substitute(cpg ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+                                       PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 + MasterGroupNo,
+                                       list(cpg = as.name(x))), data = GxE_reg_top)})
+names(res_mQTL_cpgs) <- mQTL_cpgs
+
+#AIC
+lapply(res_mQTL_cpgs,AIC)
+
+#coeffs and adj R sqrd
+res_mQTL_cpgs <- lapply(res_mQTL_cpgs,summary)
+lapply(res_mQTL_cpgs,function(x){x$coefficients[c(18,19),]})
+lapply(res_mQTL_cpgs,function(x){x$adj.r.squared})
 
 #GxEs
-summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+#####
+GxE_1 <- lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
            PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
            rs10239100 * MasterGroupNo + 
-           rs1423249 * MasterGroupNo,GxE_reg_top))
+           rs1423249,GxE_reg_top)
 
-summary(lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
+GxE_2 <- lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 + 
            PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + 
            rs278368 * MasterGroupNo + 
-           rs1423249 * MasterGroupNo,GxE_reg_top))
+           rs1423249 ,GxE_reg_top)
+
+summary(GxE_1)$adj.r.squared
+AIC(GxE_1)
+
+summary(GxE_2)$adj.r.squared
+AIC(GxE_2)
