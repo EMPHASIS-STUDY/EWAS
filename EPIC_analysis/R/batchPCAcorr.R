@@ -12,6 +12,8 @@
 #
 # author. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
 # affiliations. MRC ING, LSHTM
+#
+# NOT FOR DISTRIBUTION/ PUBLIC CONSUMPTION
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
   
 batchPCAcorr <- function(pcs=NULL,batch=NULL,npcs=10){  
