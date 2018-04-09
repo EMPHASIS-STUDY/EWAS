@@ -2,7 +2,8 @@
 # R script for performing pyroseq candidate genes analysis
 #
 # author. Ayden Saffari <ayden.saffari@lshtm.ac.uk> (MRC ING, LSHTM)
-#               
+#    
+# NOT FOR DISTRIBUTION/ PUBLIC CONSUMPTION
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 library("ggplot2")
