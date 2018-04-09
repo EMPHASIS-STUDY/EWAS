@@ -1,6 +1,13 @@
-#/\/\/\\/\//\/\/\/\/\/\/\/\/\/\
-#select samples for pyrosequencing
-#/\\/\/\/\/\/\/\/\//\/\/\/\/\//
+
+#/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+# R script to select subsample for technical validation by pyroseq
+# so as to cover entire range of methylation values for selected hits
+#
+# author. Ayden Saffari <ayden.saffari@lshtm.ac.uk> (MRC ING, LSHTM)
+#           
+# NOT FOR DISTRIBUTION/ PUBLIC CONSUMPTION
+#/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
+
 library("reshape")
 library("ggplot2")
 library("gamplotlib")
