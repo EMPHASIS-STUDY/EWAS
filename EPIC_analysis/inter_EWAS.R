@@ -5,6 +5,8 @@
 #
 # author. Ayden Saffari <ayden.saffari@lshtm.ac.uk>
 # affiliations. MRC ING, LSHTM
+#
+# NOT FOR DISTRIBUTION/ PUBLIC CONSUMPTION
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 
 library("meffil")
