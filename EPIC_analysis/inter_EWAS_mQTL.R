@@ -13,6 +13,7 @@
 
 library("GEM")
 library("plyr")
+library("dplyr")
 library("reshape2")
 library("ggplot2")
 library("gamplotlib")
@@ -246,3 +247,19 @@ AIC(GxE_1)
 
 summary(GxE_2)$adj.r.squared
 AIC(GxE_2)
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# phenoscanner GWAS lookup
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+#rs1423249, rs10239100, rs278368
+
+#summarise by trait, give min p
+pheno_GWAS <- read.csv("../results/EWAS/mQTL/PhenoScanner/GMB_EPIC_mQTLs_11855_PhenoScanner_GWAS.csv")
+pheno_GWAS <- pheno_GWAS[pheno_GWAS$SNP %in% c("rs1423249", "rs10239100", "rs278368"),]
+
+pheno_GWAS_summ <- inner_join(pheno_GWAS %>% group_by(Trait) %>% tally, 
+                         pheno_GWAS %>% group_by(Trait) %>% summarise(minP=min(P)), by="Trait")
+pheno_GWAS_summ <- arrange(pheno_GWAS_summ, -n)
+
+write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_summ.csv")
+
