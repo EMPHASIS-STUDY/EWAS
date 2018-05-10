@@ -205,7 +205,7 @@ ggsave("../results/GMB_mQTL_cg20673840_rs10239100_GxE_scatter.pdf",height=7,widt
 
 ggplot(GxE_reg_top_fil, aes(intervention,cg14972155)) + 
        geom_point(color="#264049") + stat_summary(aes(y = cg14972155,group=intervention), fun.y=mean,
-       colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs10239100) + 
+       colour="#30F3B0", geom="line",group=1) + facet_wrap( ~ rs278368) + 
        theme_gamplotlib() + theme(strip.background = element_blank()) + 
        ggtitle("cg14972155 ~ rs278368:intervention")
 ggsave("../results/GMB_mQTL_cg14972155_rs278368_GxE_scatter.pdf",height=7,width=7)
