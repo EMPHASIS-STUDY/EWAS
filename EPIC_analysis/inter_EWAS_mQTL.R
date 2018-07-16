@@ -60,7 +60,7 @@ length(which((is.na(summary_table_fil$`0`)) & (is.na(summary_table_fil$`2`)) &
 ##########################
 #reshape GSA data for GEM
 ###########################
-SNPs <- GMB_SNPs[,1,drop=F] 
+rownames(GMB_SNPs) <- GMB_SNPs[,1] 
 GMB_SNPs <- GMB_SNPs[,-1]
 
 #edit sample names to match those in sample sheet/beta matrix
@@ -80,10 +80,6 @@ colnames(GMB_SNPs) <- GSA_sample_sheet$Sample.ID[
 #REMOVE -shouldn't need to do this, 0,1,2 coding *should* work
 #GMB_SNPs <- GMB_SNPs + 1
 
-#add column for probe names back in
-GMB_SNPs <- cbind(SNPs,GMB_SNPs)
-rownames(GMB_SNPs) <- GMB_SNPs$SNP
-GMB_SNPs <- GMB_SNPs[,-1]
 
 ###########################
 #reshape EPIC data for GEM
