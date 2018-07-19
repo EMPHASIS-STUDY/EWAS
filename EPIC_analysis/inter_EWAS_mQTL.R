@@ -29,7 +29,8 @@ res_DMPs_pcs <- readRDS("../R_objects/res_DMPs_pcs.rds")
 DMRs_CpGs <- readRDS("../R_objects/EMPH_GMB_DMRs_CpGs.rds")
 norm_beta_fil <- readRDS("../R_objects/norm_beta_fil.rds")
 GMB_CpGs <- norm_beta_fil[which(rownames(norm_beta_fil) %in% 
-                          unique(c(res_DMPs_pcs$Name[res_DMPs_pcs$adj.P.Val < 0.1],DMRs_CpGs))),]
+                          unique(c(res_DMPs_pcs$Name[
+                          res_DMPs_pcs$adj.P.Val < 0.1],DMRs_CpGs))),]
 pcs <- readRDS("../R_objects/pcs.rds")
 pdata <- cbind(pdata,pcs[,1:15])
 GSA_sample_sheet <- read.csv("/data/GSA/emphasis/EMPHASIS_GMB_GSA_Samplesheet.csv")
@@ -123,8 +124,7 @@ GMB_CpGs <- GMB_CpGs[rownames(GMB_CpGs) %in% rownames(ESM1_DMR),]
 #create env and cov objects
 env <- t(pdata[,colnames(pdata) == "MasterGroupNo",drop=F])
 
-cov <- pdata[,colnames(pdata) %in% 
-               c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
+cov <- pdata[,colnames(pdata) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
                  "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
 cov[cov=="dry"] <- 1
@@ -261,9 +261,249 @@ AIC(GxE_2)
 pheno_GWAS <- read.csv("../results/EWAS/mQTL/PhenoScanner/GMB_EPIC_mQTLs_11855_PhenoScanner_GWAS.csv")
 pheno_GWAS <- pheno_GWAS[pheno_GWAS$SNP %in% c("rs1423249", "rs10239100", "rs278368"),]
 
+
+#tidy up by removing duplcate results (from alternative catalogues/sources)
+pheno_GWAS <- pheno_GWAS %>% distinct(Proxy.rsID,PMID,P,.keep_all=T)
+
+
 pheno_GWAS_summ <- inner_join(pheno_GWAS %>% group_by(Trait) %>% tally, 
-                         pheno_GWAS %>% group_by(Trait) %>% summarise(minP=min(P)), by="Trait")
+                         pheno_GWAS %>% group_by(Trait) %>% summarise(minP=min(P),
+                         meanP=mean(P)), by="Trait")
 pheno_GWAS_summ <- arrange(pheno_GWAS_summ, -n)
 
 write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_summ.csv")
 
+
+#how about n unique studies, n unique SNPs, average R^2 ?
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# redo mQTL with imputed data for chr 5 and 8
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+
+
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# chr 5
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+GMB_SNPs_chr5_3 <- read.table("/data/GSA/emphasis/imputed_geno_chr5_chr8/CHROMOSOME_5/PED_FORMAT/plink/fcgene_plink_chr5_info03_a_hwe_geno_maf_recodeA_t.traw", sep="\t", head=T)
+
+GMB_SNPs_chr5_9 <- read.table("/data/GSA/emphasis/imputed_geno_chr5_chr8/CHROMOSOME_5/PED_FORMAT/plink/fcgene_plink_chr5_info09_a_hwe_geno_maf_recodeA_t.traw", sep="\t", head=T)
+
+GMB_SNPs_chr5 <- GMB_SNPs_chr5_3
+GMB_SNPs_chr5 <- GMB_SNPs_chr5[,-c(1,3,4,5,6)]
+
+##########################
+#reshape GSA data for GEM
+###########################
+SNPs_chr5 <- GMB_SNPs_chr5[,1,drop=F] 
+GMB_SNPs_chr5 <- GMB_SNPs_chr5[,-1]
+
+#edit sample names to match those in sample sheet/beta matrix
+colnames(GMB_SNPs_chr5) <- paste0("",sapply(colnames(GMB_SNPs_chr5),
+                                           function(x){strsplit(x,"X?[0:9]*_")[[1]][2]}))
+
+#match sample order in sample sheet to GSA data
+GSA_sample_sheet_chr5 <- GSA_sample_sheet[match(colnames(GMB_SNPs_chr5),
+                                           GSA_sample_sheet$Sample.ID),]
+all(GSA_sample_sheet_chr5$Sample.ID == colnames(GMB_SNPs_chr5))
+
+#add probe names back in
+#rownames(GMB_SNPs_chr5) <- make.names(t(SNPs_chr5), unique=TRUE)
+
+###########################
+#reshape EPIC data for GEM
+############################
+GMB_SNPs_chr5 <- GMB_SNPs_chr5[,colnames(GMB_SNPs_chr5) %in% colnames(GMB_CpGs)]
+GMB_CpGs_chr5 <- GMB_CpGs[,match(colnames(GMB_SNPs_chr5),colnames(GMB_CpGs))]
+
+#rownames(GMB_CpGs) <- GMB_CpGs$ID
+#GMB_CpGs <- GMB_CpGs[,-1]
+
+all(colnames(GMB_SNPs_chr5) == colnames(GMB_CpGs_chr5))
+dim(GMB_CpGs_chr5)
+dim(GMB_SNPs_chr5)
+
+#match pdata sample order to GSA and EPIC
+pdata_chr5 <- pdata[match(as.factor(colnames(GMB_SNPs_chr5)),pdata$Subject_ID),]
+all(colnames(GMB_SNPs_chr5) == pdata_chr5$Subject_ID)
+all(colnames(GMB_SNPs_chr5) == pdata_chr5$Subject_ID)
+dim(pdata_chr5)
+
+################
+#run GEM models
+################
+
+env <- t(pdata_chr5[,colnames(pdata_chr5) == "MasterGroupNo",drop=F])
+
+cov <- pdata_chr5[,colnames(pdata_chr5) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
+                 "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
+cov[cov=="dry"] <- 1
+cov[cov=="rainy"] <- 2
+cov <- cov[-2,]
+
+rownames(cov) <- cov$variable
+cov <- cov[,-1]
+dim(cov)
+
+cov_num <- sapply(cov[,], as.numeric)
+rownames(cov_num) <- rownames(cov)
+
+env_num <- t(as.data.frame(sapply(env[,,drop=F], as.numeric)))
+rownames(env_num) <- rownames(env)
+colnames(env_num) <- colnames(env)
+
+#save as text files
+write.table(GMB_SNPs_chr5,"../data/GMB_SNPs_chr5.txt",sep="\t")
+write.table(GMB_CpGs_chr5,"../data/GMB_CpGs_chr5.txt",sep="\t")
+write.table(env_num,"../data/GMB_env_chr5.txt",sep="\t")
+write.table(cov_num,"../data/GMB_cov_chr5.txt",sep="\t")
+write.table(rbind(cov_num,env_num),"../data/GMB_gxe_chr5.txt",sep="\t")
+
+
+
+#run GEM models
+
+GEM_Gmodel("../data/GMB_SNPs_chr5.txt",
+			"../data/GMB_cov_chr5.txt",
+			"../data/GMB_CpGs_chr5.txt",1e-04,
+			"../results/GEM/Result_Gmodel_chr5_imputed.txt")
+GEM_GxEmodel("../data/GMB_SNPs_chr5.txt",
+			"../data/GMB_gxe_chr5.txt",
+			"../data/GMB_CpGs_chr5.txt", 1,
+			 "../results/GEM/Result_GEmodel_chr5_imputed.txt",
+			  topKplot = 1, savePlot=T)
+			  
+
+############			  
+#downstream
+###########
+              
+chr5_imputed_snps <- read.table("Result_Gmodel_chr5_imputed_snps.txt",head=T)
+results_gmodel_chr5 <- read.csv("Result_Gmodel_chr5_imputed_redux.csv")			  
+#get annotation 
+
+library(biomaRt)
+
+ensembl_snp <- useMart(biomart="ENSEMBL_MART_SNP",
+              dataset="hsapiens_snp", 
+              host="grch37.ensembl.org")
+
+chr5_imputed_snps <- getBM(attributes=c('refsnp_id','chr_name','chrom_start'),
+              filters = 'snp_filter', values = chr5_imputed_snps,
+              mart = ensembl_snp)
+
+results_gmodel_chr5 <- merge(results_gmodel_chr5,chr5_imputed_snps,by.x="snp",
+                             by.y="refsnp_id",all.x=T)
+                             
+#collapse multiple assocs - keep only mQTL explaining most variance    
+results_gmodel_chr5_trunc <- data.frame(results_gmodel_chr5[1,])
+results_gmodel_chr5_trunc <- results_gmodel_chr5_trunc[-1,,drop=F]
+
+for(SNP in levels(results_gmodel_chr5$snp))   {
+	temp <- results_gmodel_chr5[results_gmodel_chr5$snp %in% SNP,]
+	temp <- temp[which.max(abs(temp$beta)),]
+	results_gmodel_chr5_trunc <- rbind(results_gmodel_chr5_trunc,temp)
+}     
+
+write.table(results_gmodel_chr5_trunc,
+            "results_gmodel_chr5_imputed_annotated.tsv",quote=F,sep="\t",row.names=F)  
+            
+            
+            
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+# chr 8
+#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+GMB_SNPs_chr8_3 <- read.table("/data/GSA/emphasis/imputed_geno_chr5_chr8/CHROMOSOME_8/PED_FORMAT/plink/fcgene_plink_chr8_info03_a_hwe_geno_maf_recodeA_t.traw", sep="\t", head=T)
+
+GMB_SNPs_chr8_9 <- read.table("/data/GSA/emphasis/imputed_geno_chr5_chr8/CHROMOSOME_8/PED_FORMAT/plink/fcgene_plink_chr8_info09_a_hwe_geno_maf_recodeA_t.traw", sep="\t", head=T)
+
+GMB_SNPs_chr8 <- GMB_SNPs_chr8_3
+GMB_SNPs_chr8 <- GMB_SNPs_chr8[,-c(1,3,4,5,6)]
+               
+
+
+##########################
+#reshape GSA data for GEM
+###########################
+SNPs_chr8 <- GMB_SNPs_chr8[,1,drop=F] 
+GMB_SNPs_chr8 <- GMB_SNPs_chr8[,-1]
+
+#edit sample names to match those in sample sheet/beta matrix
+colnames(GMB_SNPs_chr8) <- paste0("",sapply(colnames(GMB_SNPs_chr8),
+                                           function(x){strsplit(x,"X?[0:9]*_")[[1]][2]}))
+
+#match sample order in sample sheet to GSA data
+GSA_sample_sheet_chr8 <- GSA_sample_sheet[match(colnames(GMB_SNPs_chr8),
+                                           GSA_sample_sheet$Sample.ID),]
+all(GSA_sample_sheet_chr8$Sample.ID == colnames(GMB_SNPs_chr8))
+
+#add probe names back in
+rownames(GMB_SNPs_chr8) <- t(SNPs_chr8)
+
+###########################
+#reshape EPIC data for GEM
+############################
+GMB_SNPs_chr8 <- GMB_SNPs_chr8[,colnames(GMB_SNPs_chr8) %in% colnames(GMB_CpGs)]
+GMB_CpGs_chr8 <- GMB_CpGs[,match(colnames(GMB_SNPs_chr8),colnames(GMB_CpGs))]
+
+#rownames(GMB_CpGs) <- GMB_CpGs$ID
+#GMB_CpGs <- GMB_CpGs[,-1]
+
+all(colnames(GMB_SNPs_chr8) == colnames(GMB_CpGs_chr8))
+dim(GMB_CpGs_chr8)
+dim(GMB_SNPs_chr8)
+
+#match pdata sample order to GSA and EPIC
+pdata_chr8 <- pdata[match(as.factor(colnames(GMB_SNPs_chr8)),pdata$Subject_ID),]
+all(colnames(GMB_SNPs_chr8) == pdata_chr8$Subject_ID)
+all(colnames(GMB_SNPs_chr8) == pdata_chr8$Subject_ID)
+dim(pdata_chr8)
+
+################
+#run GEM models
+################
+
+env <- t(pdata_chr8[,colnames(pdata_chr8) == "MasterGroupNo",drop=F])
+
+cov <- pdata_chr8[,colnames(pdata_chr8) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
+                 "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
+cov[cov=="dry"] <- 1
+cov[cov=="rainy"] <- 2
+cov <- cov[-2,]
+
+rownames(cov) <- cov$variable
+cov <- cov[,-1]
+dim(cov)
+
+cov_num <- sapply(cov[,], as.numeric)
+rownames(cov_num) <- rownames(cov)
+
+env_num <- t(as.data.frame(sapply(env[,,drop=F], as.numeric)))
+rownames(env_num) <- rownames(env)
+colnames(env_num) <- colnames(env)
+
+#save as text files
+write.table(GMB_SNPs_chr8,"../data/GMB_SNPs_chr8.txt",sep="\t")
+write.table(GMB_CpGs_chr8,"../data/GMB_CpGs_chr8.txt",sep="\t")
+write.table(env_num,"../data/GMB_env_chr8.txt",sep="\t")
+write.table(cov_num,"../data/GMB_cov_chr8.txt",sep="\t")
+write.table(rbind(cov_num,env_num),"../data/GMB_gxe_chr8.txt",sep="\t")
+
+
+
+#run GEM models
+
+GEM_Gmodel("../data/GMB_SNPs_chr8.txt",
+			"../data/GMB_cov_chr8.txt",
+			"../data/GMB_CpGs_chr8.txt",1e-04,
+			"../results/GEM/Result_Gmodel_chr8_imputed.txt")
+GEM_GxEmodel("../data/GMB_SNPs_chr8.txt",
+			"../data/GMB_gxe_chr8.txt",
+			"../data/GMB_CpGs_chr8.txt", 1,
+			 "../results/GEM/Result_GEmodel_chr8_imputed.txt",
+			  topKplot = 1, savePlot=T)
+			  
