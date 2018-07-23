@@ -258,10 +258,16 @@ pheno_GWAS <- read.csv("../results/EWAS/mQTL/PhenoScanner/GMB_EPIC_mQTLs_11855_P
 pheno_GWAS <- pheno_GWAS[pheno_GWAS$SNP %in% c("rs1423249", "rs10239100", "rs278368"),]
 
 
-#tidy up by removing duplcate results (from alternative catalogues/sources)
+#tidy up 
+#removing duplcate results (from alternative catalogues/sources)
 pheno_GWAS <- pheno_GWAS %>% distinct(Proxy.rsID,PMID,P,.keep_all=T)
 
+#drop unused levels
+pheno_GWAS <- droplevels(pheno_GWAS)
+pheno_GWAS$PMID <- as.factor(pheno_GWAS$PMID)
 
+
+#summarise
 pheno_GWAS_summ <- inner_join(pheno_GWAS %>% group_by(Trait) %>% tally, 
                          pheno_GWAS %>% group_by(Trait) %>% summarise(minP=min(P),
                          meanP=mean(P)), by="Trait")
@@ -270,11 +276,91 @@ pheno_GWAS_summ <- arrange(pheno_GWAS_summ, -n)
 write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_summ.csv")
 
 
-#how about n unique studies, n unique SNPs, average R^2 ?
+
+#summarise with custom trait grouping
+combi_traits <- list()
+combi_traits[["HDL/LDL Cholesterol"]] <- 
+                             c("HDL cholesterol","HDL","Statin response difference HDL",
+            					"Statin response difference LDL","Total cholesterol",
+                       			"LDL cholesterol",
+                       			"Statin response difference total cholesterol")
+combi_traits[["Insulin"]] <- c("log(Ins30)","log(Ins30) adjusted for BMI",
+								"log(AUCins)","log(Increm30)","log(ISI)",
+								"log(AUCins/AUCglu)","HbA1C")
+combi_traits[["Height"]] <- c("Height variability",
+"Height SDS for females aged 10 years and males aged 12 years",
+"Height SDS for males aged 12 years","Height in females")
+combi_traits[["Schizophrenia"]] <- c("Schizophrenia")
+combi_traits[["Hip/Waist"]] <- c("Hip circumference in females",
+                                     "Waist circumference in males",
+                                     "Hip circumference","Waist hip ratio in males",
+                                     "Hip circumference in males") 
+combi_traits[["BMI/weight/obesity"]] <- c("Obesity class 3","Obesity class 2",
+										   "BMI variability","BMI in males",
+										   "BMI in males greater than 50 years of age",
+										   "Weight in males")
+combi_traits[["Bipolar disorder"]] <- c("Bipolar disorder")
+combi_traits[["Tanner stage/ age at menarche"]] <- c("Age at menarche","Tanner stage",
+                                                    "Tanner stage males")
+combi_traits[["Parkinsons disease"]] <- c("Parkinsons disease")
+combi_traits[["Birth measures"]] <- c("Infant head circumference",
+									  "Birthlength")
+combi_traits[["Kidney function"]] <- c("log(Urinary albumin creatinine ratio)",
+										"log(eGFR creatinine)",
+									"log(Urinary albumin creatinine ratio in diabetics)",
+									"Microalbuminuria","Chronic kidney disease")	
+combi_traits[["Diabetic retinopathy in Type 2 diabetes mellitus"]] <- c(
+                                       "Diabetic retinopathy in Type 2 diabetes mellitus")
+combi_traits[["Age at menopause"]] <- c("Age at menopause")
+combi_traits[["Coronary artery disease"]] <- c("Coronary artery disease")
+combi_traits[["Sporadic Creutzfeldt Jakob disease"]] <- c(
+                                                     "Sporadic Creutzfeldt Jakob disease")
+combi_traits[["Former smoker"]] <- c("Former smoker")
+combi_traits[["Gastric cancer"]] <- c("Gastric cancer")	
+combi_traits[["Glioma"]] <- c("Glioma")		
+combi_traits[["Myocardial infarction"]] <- c("Myocardial infarction")		
+combi_traits[["Rheumatoid arthritis"]] <- c("Rheumatoid arthritis")	
+combi_traits[["Subject well being"]] <- c("Subject well being")
+combi_traits[["Tetrology of fallot"]] <- c("Tetrology of fallot")
+combi_traits[["Alzheimers disease"]] <- c("Alzheimers disease")								  
+combi_traits[["Autism"]] <- c("Autism")			
+combi_traits[["Crohns disease"]] <- c("Crohns disease")	
+combi_traits[["Irritible bowel syndrome"]] <- c("Irritible bowel syndrome")
+combi_traits[["Major depressive disorder"]] <- c("Major depressive disorder")
+combi_traits[["Neuroticism"]] <- c("Neuroticism")
+combi_traits[["Psoriasis"]] <- c("Psoriasis")	
+combi_traits[["Resistance to kuru in aged women despite likely exposure"]] <- c(
+							"Resistance to kuru in aged women despite likely exposure")	
+combi_traits[["Serum ratio of bradykinin des arg9taurodeoxycholate"]] <- c(
+                                   "Serum ratio of bradykinin des arg9taurodeoxycholate")	
+
+combi_traits[["Stabilized warfarin dose"]] <- c("Stabilized warfarin dose")	
+combi_traits[["Variant Creutzfeldt Jakob disease"]] <- c(
+                                                     "Variant Creutzfeldt Jakob disease")	
+							  
+
+pheno_GWAS_summ  <- lapply(combi_traits,function(x){
+						   pheno_GWAS %>% filter(Trait %in% x) %>%
+                           summarise(nstudies=n_distinct(PMID),
+                           nSNPS=n_distinct(Proxy.rsID), meanR2=mean(r2),
+                           minP=min(P), meanP=mean(P),
+                           maxBeta=ifelse(length(Beta[!is.na(Beta)]) > 0,
+                           max(abs(Beta[!is.na(Beta)])) * 
+                           sign(Beta[which.max(abs(Beta))]),-Inf), 
+                           meanBeta=mean(Beta,na.rm=T),
+                           consistentDir= all(sign(Beta[!is.na(Beta)]) > 0) || 
+                           all(sign(Beta[!is.na(Beta)]) < 0))
+                           }) %>% bind_rows() 
+pheno_GWAS_summ$Trait <- names(combi_traits)
+
+pheno_GWAS_summ <- pheno_GWAS_summ %>% arrange(desc(nstudies),minP)
+
+write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_trait_comb_summ.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # redo mQTL with imputed data for chr 5 and 8
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
 
 
 
