@@ -1,3 +1,4 @@
+#TODO future versions - add pseudocount to perm p calc to prevent p = 0 ?
 #/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/\/
 #
 # R script to perform self contained geneset permutation test
@@ -95,7 +96,7 @@ perm_res <- foreach(i=1:ncol(permMasterGroupNo),.combine=c, .verbose=T) %dopar%
 message("##### MEs #####")
 message(paste0("overlap: ",perm_res[10000]))
 message(paste0("p-value overlap: ",
-        (length(which(perm_res[1:9999] >= perm_res[10000]))) / 10000))
+        sum(perm_res[1:9999] >= perm_res[10000]) / 10000))
 
 #####
 #ICRs
@@ -110,7 +111,7 @@ perm_res <- foreach(i=1:ncol(permMasterGroupNo),.combine=c, .verbose=T) %dopar%
 message("##### ICRs #####")
 message(paste0("overlap: ",perm_res[10000]))
 message(paste0("p-value overlap: ",
-        (length(which(perm_res[1:9999] >= perm_res[10000]))) / 10000))
+        sum(perm_res[1:9999] >= perm_res[10000]) / 10000))
 
 #########
 #nutripgs
@@ -125,8 +126,8 @@ perm_res <- foreach(i=1:ncol(permMasterGroupNo),.combine=c, .verbose=T) %dopar%
 
 message("##### nutricpgs #####")
 message(paste0("overlap: ",perm_res[10000]))
-message(paste0("p-value overlap: ",(length(
-        which(perm_res[1:9999] >= perm_res[10000]))) / 10000))
+message(paste0("p-value overlap: ",
+        sum(perm_res[1:9999] >= perm_res[10000]) / 10000))
 
 ##############
 #var controls
@@ -141,5 +142,5 @@ perm_res <- foreach(i=1:ncol(permMasterGroupNo),.combine=c, .verbose=T) %dopar%
 
 message("##### variable controls #####")
 message(paste0("overlap: ",perm_res[10000]))
-message(paste0("p-value overlap: ",(length(
-        which(perm_res[1:9999] >= perm_res[10000]))) / 10000))
+message(paste0("p-value overlap: ",
+        sum(perm_res[1:9999] >= perm_res[10000]) / 10000))
