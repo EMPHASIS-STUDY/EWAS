@@ -28,9 +28,13 @@ pdata <- readRDS("../R_objects/pdata.rds")
 res_DMPs_pcs <- readRDS("../R_objects/res_DMPs_pcs.rds")
 DMRs_CpGs <- readRDS("../R_objects/EMPH_GMB_DMRs_CpGs.rds")
 norm_beta_fil <- readRDS("../R_objects/norm_beta_fil.rds")
+#GMB_CpGs <- norm_beta_fil[which(rownames(norm_beta_fil) %in%
+#                          unique(c(res_DMPs_pcs$Name[
+#                          res_DMPs_pcs$adj.P.Val < 0.1],DMRs_CpGs))),]
+
 GMB_CpGs <- norm_beta_fil[which(rownames(norm_beta_fil) %in%
-                          unique(c(res_DMPs_pcs$Name[
-                          res_DMPs_pcs$adj.P.Val < 0.1],DMRs_CpGs))),]
+                          DMRs_CpGs),]
+
 pcs <- readRDS("../R_objects/pcs.rds")
 pdata <- cbind(pdata,pcs[,1:15])
 GSA_sample_sheet <- read.csv("/data/GSA/emphasis/EMPHASIS_GMB_GSA_Samplesheet.csv")
@@ -119,30 +123,54 @@ GMB_CpGs <- GMB_CpGs[rownames(GMB_CpGs) %in% rownames(ESM1_DMR),]
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #create env and cov objects
 env <- t(pdata[,colnames(pdata) == "MasterGroupNo",drop=F])
+colnames(env) <- pdata$Subject_ID[match(colnames(env),rownames(pdata))]
 
-cov <- pdata[,colnames(pdata) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
-                 "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov <- pdata[,colnames(pdata) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
+"PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
 cov[cov=="dry"] <- 1
 cov[cov=="rainy"] <- 2
-cov <- cov[-2,]
 
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
+cov <- cov[,match(pdata$Subject_ID,colnames(cov))]
 dim(cov)
+
+#create combined cov file
+cov_env <- rbind(cov[-2,],cov[2,])
+
+#remove mastergroup from cov
+cov <- cov[-2,]
 
 cov_num <- sapply(cov[,], as.numeric)
 rownames(cov_num) <- rownames(cov)
 
+cov_env_num <- sapply(cov_env[,], as.numeric)
+rownames(cov_env_num) <- rownames(cov_env)
+
 env_num <- t(as.data.frame(sapply(env[,,drop=F], as.numeric)))
 rownames(env_num) <- rownames(env)
 colnames(env_num) <- colnames(env)
+
+dim(cov_num)
+dim(env_num)
+dim(cov_env_num)
+all.equal(colnames(cov_num),as.character(pdata$Subject_ID))
+all.equal(colnames(cov_num),colnames(GMB_SNPs))
+all.equal(colnames(cov_num),colnames(GMB_CpGs))
+all.equal(colnames(cov_num),colnames(env_num))
+all.equal(colnames(env_num),as.character(pdata$Subject_ID))
+all.equal(colnames(env_num),colnames(GMB_SNPs))
+all.equal(colnames(env_num),colnames(GMB_CpGs))
+all.equal(colnames(cov_env_num),colnames(cov_num))
+
 #save as text files
 write.table(GMB_SNPs,"../data/GMB_SNPs.txt",sep="\t")
 write.table(GMB_CpGs,"../data/GMB_CpGs.txt",sep="\t")
 write.table(env_num,"../data/GMB_env.txt",sep="\t")
 write.table(cov_num,"../data/GMB_cov.txt",sep="\t")
-write.table(rbind(cov_num,env_num),"../data/GMB_gxe.txt",sep="\t")
+write.table(cov_env_num,"../data/GMB_gxe.txt",sep="\t")
 
 #run GEM models
 GEM_Emodel("../data/GMB_env.txt", "../data/GMB_cov.txt", "../data/GMB_CpGs.txt",
@@ -153,30 +181,28 @@ GEM_Gmodel("../data/GMB_SNPs.txt","../data/GMB_cov.txt","../data/GMB_CpGs.txt",
 GEM_GxEmodel("../data/GMB_SNPs.txt", "../data/GMB_gxe.txt", "../data/GMB_CpGs.txt",
              1, "../results/GEM/Result_GEmodel.txt", topKplot = 1, savePlot=T)
 
-#Run regression with genotype and interaction
-GxE_reg_top <- cbind(t(GMB_SNPs[rownames(GMB_SNPs) %in% c("rs1423249","rs10239100","rs278368"),]),
+#Run regression with additive genotype and interaction
+GxE_reg_top <- merge(t(GMB_SNPs[rownames(GMB_SNPs) %in%
+                     c("rs1423249"),]),
                      t(GMB_CpGs[rownames(GMB_CpGs) %in% c("cg06837426","cg20673840","cg20451680",
-                                                        "cg14972155","cg21180956","cg20059697","cg13106512"),]))
-
+                        "cg14972155","cg20059697",
+                        "cg13106512","cg21180956"),]),by="row.names")
+rownames(GxE_reg_top) <- GxE_reg_top$Row.names
+GxE_reg_top <- GxE_reg_top[,-1]
+GxE_reg_top <- GxE_reg_top[match(pdata$Subject_ID,
+                           rownames(GxE_reg_top)),]
 GxE_reg_top <- merge(GxE_reg_top,pdata,by.x='row.names',by.y='Subject_ID')
+
+#alternative with genotype as factor
 #GxE_reg_top$rs10239100 <- as.factor(GxE_reg_top$rs10239100)
 #GxE_reg_top$rs1423249 <- as.factor(GxE_reg_top$rs1423249)
 
-summary(lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+summary(lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 +
+           PC7 + PC8 + PC9 + PC10 +
            PC11 + PC12 + PC13 + PC15 + Age + MooreSoC +
-           rs10239100 * MasterGroupNo +
-           rs1423249 * MasterGroupNo,GxE_reg_top))
+           MasterGroupNo +
+           rs1423249,GxE_reg_top))
 
-#frequency plots
-histo_geno_inter <- as.data.frame(table(GxE_reg_top$rs10239100:GxE_reg_top$MasterGroupNo))
-colnames(histo_geno_inter)[1] <- "Genotype:MasterGroupNo"
-ggplot(histo_geno_inter, aes(x=`Genotype:MasterGroupNo`,y=Freq)) + geom_histogram(stat="identity")
-ggsave("GMB_mQTL_rs10239100_geno_inter_histogram.pdf",height=7,width=7)
-
-histo_geno_inter <- as.data.frame(table(GxE_reg_top$rs1423249:GxE_reg_top$MasterGroupNo))
-colnames(histo_geno_inter)[1] <- "Genotype:MasterGroupNo"
-ggplot(histo_geno_inter, aes(x=`Genotype:MasterGroupNo`,y=Freq)) + geom_histogram(stat="identity")
-ggsave("GMB_mQTL_rs1423249_geno_inter_histogram.pdf",height=7,width=7)
 
 #meth x inter x geno plot
 GxE_reg_top_fil <- GxE_reg_top[,colnames(GxE_reg_top) %in%
@@ -192,182 +218,95 @@ GxE_reg_top_fil$rs10239100 <- revalue(GxE_reg_top_fil$rs10239100, c("0"="CC","1"
 GxE_reg_top_fil$rs1423249 <- revalue(GxE_reg_top_fil$rs1423249, c("0"="GG","1"="GA","2"="AA"))
 GxE_reg_top_fil$rs278368 <- revalue(GxE_reg_top_fil$rs278368, c("0"="GG","1"="GA","2"="AA"))
 
+
+#cg20673840 ~ rs1423249:intervention
 ggplot(GxE_reg_top_fil, aes(intervention,cg20673840),color=intervention) +
        geom_point(aes(color = intervention)) + scale_color_manual(values=c("#46617A","#00B8A2")) + stat_summary(aes(y = cg20673840,group=intervention), fun.y=mean,
-       colour="#252997", geom="line",group=1) + facet_wrap( ~ rs10239100) +
+       colour="#252997", geom="line",group=1) + facet_wrap( ~ rs1423249) +
        theme_gamplotlib() + theme(strip.background = element_blank(),
-       panel.grid.major.x = element_blank(),legend.title=element_blank()) +
+       panel.grid.major.x = element_blank(),legend.position="none",
+       aspect.ratio=1) +
        scale_x_discrete(labels=c("control","inter.")) +
        ylab("methylation Beta value") + xlab("group") +
-       ggtitle("cg20673840 ~ rs10239100:intervention")
-ggsave("GMB_mQTL_cg20673840_rs10239100_GxE_scatter.pdf",width=(3.5 + 0.875),height=3.5, units="in", dpi=300)
+       ggtitle("cg20673840 ~ rs1423249:intervention")
+ggsave("GMB_mQTL_cg20673840_rs1423249_GxE_scatter.pdf",width=(4),
+height=3.5, units="in", dpi=300)
 
-ggplot(GxE_reg_top_fil, aes(intervention,cg14972155)) +
-       geom_point(aes(color = intervention)) + scale_color_manual(values=c("#46617A","#00B8A2")) + stat_summary(aes(y = cg14972155,group=intervention), fun.y=mean,
-       colour="#252997", geom="line",group=1) + facet_wrap( ~ rs278368) +
+#cg20673840 ~ rs1423249
+ggplot(GxE_reg_top_fil, aes(rs1423249,cg20673840),color=rs1423249) +
+       geom_point(aes(color = rs1423249)) + scale_color_manual(values=c("#C04B8E","#C04B8E","#C04B8E")) + stat_summary(aes(y = cg20673840,group=rs1423249), fun.y=mean,
+       colour="#252997", geom="line",group=1) +
        theme_gamplotlib() + theme(strip.background = element_blank(),
-       panel.grid.major.x = element_blank(),legend.title=element_blank()) +
-       scale_x_discrete(labels=c("control","inter.")) +
-       ylab("methylation Beta value") + xlab("group") + ggtitle("cg14972155 ~ rs278368:intervention")
-ggsave("GMB_mQTL_cg14972155_rs278368_GxE_scatter.pdf",width=(3.5 + 0.875),height=3.5, units="in", dpi=300)
+       panel.grid.major.x = element_blank(),legend.position="none",
+       aspect.ratio=1) +
+       scale_x_discrete() +
+       ylab("methylation Beta value") + xlab("genotype") +
+       ggtitle("cg20673840 ~ rs1423249")
+ggsave("GMB_mQTL_cg20673840_rs1423249_G_scatter.pdf",width=(4),
+height=3.5, units="in", dpi=300)
 
 
-#values=c("#00B8A2","#F67445")
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # run additional analyses
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 #G only mQTLs
 ######
 #rs1423249
+mQTL_cpgs <- c("cg06837426","cg20673840","cg20451680",
+                "cg14972155","cg20059697",
+                "cg13106512","cg21180956")
 
-mQTL_cpgs <- c("cg06837426","cg20673840","cg20451680","cg14972155","cg21180956","cg20059697","cg13106512")
+#G
+###
+print("G")
+res_mQTL_cpgs  <- lapply(mQTL_cpgs, function(x) {
+                         lm(substitute(cpg ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+                                       PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249,
+                                       list(cpg = as.name(x))), data = GxE_reg_top)})
+names(res_mQTL_cpgs) <- mQTL_cpgs
+
+#coeffs and adj R sqrd
+res_mQTL_cpgs_summ <- lapply(res_mQTL_cpgs,summary)
+lapply(res_mQTL_cpgs_summ,function(x){x$coefficients[c(18),]})
+lapply(res_mQTL_cpgs_summ,function(x){x$adj.r.squared})
+#AIC
+lapply(res_mQTL_cpgs,AIC)
+
+#E
+###
+print("E")
+res_mQTL_cpgs  <- lapply(mQTL_cpgs, function(x) {
+                         lm(substitute(cpg ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
+                                       PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + MasterGroupNo,
+                                       list(cpg = as.name(x))), data = GxE_reg_top)})
+names(res_mQTL_cpgs) <- mQTL_cpgs
+
+#coeffs and adj R sqrd
+res_mQTL_cpgs_summ <- lapply(res_mQTL_cpgs,summary)
+lapply(res_mQTL_cpgs_summ,function(x){x$coefficients[c(18),]})
+lapply(res_mQTL_cpgs_summ,function(x){x$adj.r.squared})
+#AIC
+lapply(res_mQTL_cpgs,AIC)
+
+#G+E
+####
+print("G + E")
 res_mQTL_cpgs  <- lapply(mQTL_cpgs, function(x) {
                          lm(substitute(cpg ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
                                        PC11 + PC12 + PC13 + PC15 + Age + MooreSoC + rs1423249 + MasterGroupNo,
                                        list(cpg = as.name(x))), data = GxE_reg_top)})
 names(res_mQTL_cpgs) <- mQTL_cpgs
 
+#coeffs and adj R sqrd
+res_mQTL_cpgs_summ <- lapply(res_mQTL_cpgs,summary)
+lapply(res_mQTL_cpgs_summ,function(x){x$coefficients[c(18,19),]})
+lapply(res_mQTL_cpgs_summ,function(x){x$adj.r.squared})
 #AIC
 lapply(res_mQTL_cpgs,AIC)
-
-#coeffs and adj R sqrd
-res_mQTL_cpgs <- lapply(res_mQTL_cpgs,summary)
-lapply(res_mQTL_cpgs,function(x){x$coefficients[c(18,19),]})
-lapply(res_mQTL_cpgs,function(x){x$adj.r.squared})
-
-#GxEs
-#####
-GxE_1 <- lm(cg20673840 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC +
-           rs10239100 * MasterGroupNo +
-           rs1423249,GxE_reg_top)
-
-GxE_2 <- lm(cg14972155 ~ PC1 + PC2 + PC3 + PC4 + PC5 + PC6 + PC7 + PC8 + PC9 + PC10 +
-           PC11 + PC12 + PC13 + PC15 + Age + MooreSoC +
-           rs278368 * MasterGroupNo +
-           rs1423249 ,GxE_reg_top)
-
-summary(GxE_1)$adj.r.squared
-AIC(GxE_1)
-
-summary(GxE_2)$adj.r.squared
-AIC(GxE_2)
-
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-# phenoscanner GWAS lookup
-#^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-#rs1423249, rs10239100, rs278368
-
-#summarise by trait, give min p
-pheno_GWAS <- read.csv("../results/EWAS/mQTL/PhenoScanner/GMB_EPIC_mQTLs_11855_PhenoScanner_GWAS.csv")
-pheno_GWAS <- pheno_GWAS[pheno_GWAS$SNP %in% c("rs1423249", "rs10239100", "rs278368"),]
-
-
-#tidy up
-#removing duplcate results (from alternative catalogues/sources)
-pheno_GWAS <- pheno_GWAS %>% distinct(Proxy.rsID,PMID,P,.keep_all=T)
-
-#drop unused levels
-pheno_GWAS <- droplevels(pheno_GWAS)
-pheno_GWAS$PMID <- as.factor(pheno_GWAS$PMID)
-
-
-#summarise
-pheno_GWAS_summ <- inner_join(pheno_GWAS %>% group_by(Trait) %>% tally,
-                         pheno_GWAS %>% group_by(Trait) %>% summarise(minP=min(P),
-                         meanP=mean(P)), by="Trait")
-pheno_GWAS_summ <- arrange(pheno_GWAS_summ, -n)
-
-write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_summ.csv")
-
-
-
-#summarise with custom trait grouping
-combi_traits <- list()
-combi_traits[["HDL/LDL Cholesterol"]] <-
-                             c("HDL cholesterol","HDL","Statin response difference HDL",
-            					"Statin response difference LDL","Total cholesterol",
-                       			"LDL cholesterol",
-                       			"Statin response difference total cholesterol")
-combi_traits[["Insulin"]] <- c("log(Ins30)","log(Ins30) adjusted for BMI",
-								"log(AUCins)","log(Increm30)","log(ISI)",
-								"log(AUCins/AUCglu)","HbA1C")
-combi_traits[["Height"]] <- c("Height variability",
-"Height SDS for females aged 10 years and males aged 12 years",
-"Height SDS for males aged 12 years","Height in females")
-combi_traits[["Schizophrenia"]] <- c("Schizophrenia")
-combi_traits[["Hip/Waist"]] <- c("Hip circumference in females",
-                                     "Waist circumference in males",
-                                     "Hip circumference","Waist hip ratio in males",
-                                     "Hip circumference in males")
-combi_traits[["BMI/weight/obesity"]] <- c("Obesity class 3","Obesity class 2",
-										   "BMI variability","BMI in males",
-										   "BMI in males greater than 50 years of age",
-										   "Weight in males")
-combi_traits[["Bipolar disorder"]] <- c("Bipolar disorder")
-combi_traits[["Tanner stage/ age at menarche"]] <- c("Age at menarche","Tanner stage",
-                                                    "Tanner stage males")
-combi_traits[["Parkinsons disease"]] <- c("Parkinsons disease")
-combi_traits[["Birth measures"]] <- c("Infant head circumference",
-									  "Birthlength")
-combi_traits[["Kidney function"]] <- c("log(Urinary albumin creatinine ratio)",
-										"log(eGFR creatinine)",
-									"log(Urinary albumin creatinine ratio in diabetics)",
-									"Microalbuminuria","Chronic kidney disease")
-combi_traits[["Diabetic retinopathy in Type 2 diabetes mellitus"]] <- c(
-                                       "Diabetic retinopathy in Type 2 diabetes mellitus")
-combi_traits[["Age at menopause"]] <- c("Age at menopause")
-combi_traits[["Coronary artery disease"]] <- c("Coronary artery disease")
-combi_traits[["Sporadic Creutzfeldt Jakob disease"]] <- c(
-                                                     "Sporadic Creutzfeldt Jakob disease")
-combi_traits[["Former smoker"]] <- c("Former smoker")
-combi_traits[["Gastric cancer"]] <- c("Gastric cancer")
-combi_traits[["Glioma"]] <- c("Glioma")
-combi_traits[["Myocardial infarction"]] <- c("Myocardial infarction")
-combi_traits[["Rheumatoid arthritis"]] <- c("Rheumatoid arthritis")
-combi_traits[["Subject well being"]] <- c("Subject well being")
-combi_traits[["Tetrology of fallot"]] <- c("Tetrology of fallot")
-combi_traits[["Alzheimers disease"]] <- c("Alzheimers disease")
-combi_traits[["Autism"]] <- c("Autism")
-combi_traits[["Crohns disease"]] <- c("Crohns disease")
-combi_traits[["Irritible bowel syndrome"]] <- c("Irritible bowel syndrome")
-combi_traits[["Major depressive disorder"]] <- c("Major depressive disorder")
-combi_traits[["Neuroticism"]] <- c("Neuroticism")
-combi_traits[["Psoriasis"]] <- c("Psoriasis")
-combi_traits[["Resistance to kuru in aged women despite likely exposure"]] <- c(
-							"Resistance to kuru in aged women despite likely exposure")
-combi_traits[["Serum ratio of bradykinin des arg9taurodeoxycholate"]] <- c(
-                                   "Serum ratio of bradykinin des arg9taurodeoxycholate")
-
-combi_traits[["Stabilized warfarin dose"]] <- c("Stabilized warfarin dose")
-combi_traits[["Variant Creutzfeldt Jakob disease"]] <- c(
-                                                     "Variant Creutzfeldt Jakob disease")
-
-
-pheno_GWAS_summ  <- lapply(combi_traits,function(x){
-						   pheno_GWAS %>% filter(Trait %in% x) %>%
-                           summarise(nstudies=n_distinct(PMID),
-                           nSNPS=n_distinct(Proxy.rsID), meanR2=mean(r2),
-                           minP=min(P), meanP=mean(P),
-                           maxBeta=ifelse(length(Beta[!is.na(Beta)]) > 0,
-                           max(abs(Beta[!is.na(Beta)])) *
-                           sign(Beta[which.max(abs(Beta))]),-Inf),
-                           meanBeta=mean(Beta,na.rm=T),
-                           consistentDir= all(sign(Beta[!is.na(Beta)]) > 0) ||
-                           all(sign(Beta[!is.na(Beta)]) < 0))
-                           }) %>% bind_rows()
-pheno_GWAS_summ$Trait <- names(combi_traits)
-
-pheno_GWAS_summ <- pheno_GWAS_summ %>% arrange(desc(nstudies),minP)
-
-write.csv(pheno_GWAS_summ,"../results/EWAS/mQTL/pheno_GWAS_trait_comb_summ.csv")
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # redo mQTL with imputed data for chr 5 and 8
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-
-
-
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # chr 5
@@ -414,44 +353,64 @@ dim(GMB_SNPs_chr5)
 #match pdata sample order to GSA and EPIC
 pdata_chr5 <- pdata[match(as.factor(colnames(GMB_SNPs_chr5)),pdata$Subject_ID),]
 all(colnames(GMB_SNPs_chr5) == pdata_chr5$Subject_ID)
-all(colnames(GMB_SNPs_chr5) == pdata_chr5$Subject_ID)
+all(colnames(GMB_CpGs_chr5) == pdata_chr5$Subject_ID)
 dim(pdata_chr5)
 
 ################
 #run GEM models
 ################
-
+#create env and cov objects
 env <- t(pdata_chr5[,colnames(pdata_chr5) == "MasterGroupNo",drop=F])
+colnames(env) <- pdata_chr5$Subject_ID[match(colnames(env),rownames(pdata_chr5))]
 
-cov <- pdata_chr5[,colnames(pdata_chr5) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
-                 "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov <- pdata_chr5[,colnames(pdata_chr5) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
+"PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
 cov[cov=="dry"] <- 1
 cov[cov=="rainy"] <- 2
-cov <- cov[-2,]
 
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
+cov <- cov[,match(pdata_chr5$Subject_ID,colnames(cov))]
 dim(cov)
+
+#create combined cov file
+cov_env <- rbind(cov[-2,],cov[2,])
+
+#remove mastergroup from cov
+cov <- cov[-2,]
 
 cov_num <- sapply(cov[,], as.numeric)
 rownames(cov_num) <- rownames(cov)
 
+cov_env_num <- sapply(cov_env[,], as.numeric)
+rownames(cov_env_num) <- rownames(cov_env)
+
 env_num <- t(as.data.frame(sapply(env[,,drop=F], as.numeric)))
 rownames(env_num) <- rownames(env)
 colnames(env_num) <- colnames(env)
+
+dim(cov_num)
+dim(env_num)
+dim(cov_env_num)
+all.equal(colnames(cov_num),as.character(pdata_chr5$Subject_ID))
+all.equal(colnames(cov_num),colnames(GMB_SNPs_chr5))
+all.equal(colnames(cov_num),colnames(GMB_CpGs_chr5))
+all.equal(colnames(cov_num),colnames(env_num))
+all.equal(colnames(env_num),as.character(pdata_chr5$Subject_ID))
+all.equal(colnames(env_num),colnames(GMB_SNPs_chr5))
+all.equal(colnames(env_num),colnames(GMB_CpGs_chr5))
+all.equal(colnames(cov_env_num),colnames(cov_num))
 
 #save as text files
 write.table(GMB_SNPs_chr5,"../data/GMB_SNPs_chr5.txt",sep="\t")
 write.table(GMB_CpGs_chr5,"../data/GMB_CpGs_chr5.txt",sep="\t")
 write.table(env_num,"../data/GMB_env_chr5.txt",sep="\t")
 write.table(cov_num,"../data/GMB_cov_chr5.txt",sep="\t")
-write.table(rbind(cov_num,env_num),"../data/GMB_gxe_chr5.txt",sep="\t")
-
-
+write.table(cov_env_num,"../data/GMB_gxe_chr5.txt",sep="\t")
 
 #run GEM models
-
 GEM_Gmodel("../data/GMB_SNPs_chr5.txt",
 			"../data/GMB_cov_chr5.txt",
 			"../data/GMB_CpGs_chr5.txt",1e-04,
@@ -461,42 +420,6 @@ GEM_GxEmodel("../data/GMB_SNPs_chr5.txt",
 			"../data/GMB_CpGs_chr5.txt", 1,
 			 "../results/GEM/Result_GEmodel_chr5_imputed.txt",
 			  topKplot = 1, savePlot=T)
-
-
-############
-#downstream
-###########
-
-chr5_imputed_snps <- read.table("Result_Gmodel_chr5_imputed_snps.txt",head=T)
-results_gmodel_chr5 <- read.csv("Result_Gmodel_chr5_imputed_redux.csv")
-#get annotation
-
-library(biomaRt)
-
-ensembl_snp <- useMart(biomart="ENSEMBL_MART_SNP",
-              dataset="hsapiens_snp",
-              host="grch37.ensembl.org")
-
-chr5_imputed_snps <- getBM(attributes=c('refsnp_id','chr_name','chrom_start'),
-              filters = 'snp_filter', values = chr5_imputed_snps,
-              mart = ensembl_snp)
-
-results_gmodel_chr5 <- merge(results_gmodel_chr5,chr5_imputed_snps,by.x="snp",
-                             by.y="refsnp_id",all.x=T)
-
-#collapse multiple assocs - keep only mQTL explaining most variance
-results_gmodel_chr5_trunc <- data.frame(results_gmodel_chr5[1,])
-results_gmodel_chr5_trunc <- results_gmodel_chr5_trunc[-1,,drop=F]
-
-for(SNP in levels(results_gmodel_chr5$snp))   {
-	temp <- results_gmodel_chr5[results_gmodel_chr5$snp %in% SNP,]
-	temp <- temp[which.max(abs(temp$beta)),]
-	results_gmodel_chr5_trunc <- rbind(results_gmodel_chr5_trunc,temp)
-}
-
-write.table(results_gmodel_chr5_trunc,
-            "results_gmodel_chr5_imputed_annotated.tsv",quote=F,sep="\t",row.names=F)
-
 
 
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -546,44 +469,61 @@ dim(GMB_SNPs_chr8)
 #match pdata sample order to GSA and EPIC
 pdata_chr8 <- pdata[match(as.factor(colnames(GMB_SNPs_chr8)),pdata$Subject_ID),]
 all(colnames(GMB_SNPs_chr8) == pdata_chr8$Subject_ID)
-all(colnames(GMB_SNPs_chr8) == pdata_chr8$Subject_ID)
+all(colnames(GMB_CpGs_chr8) == pdata_chr8$Subject_ID)
 dim(pdata_chr8)
 
-################
-#run GEM models
-################
-
+#create env and cov objects
 env <- t(pdata_chr8[,colnames(pdata_chr8) == "MasterGroupNo",drop=F])
+colnames(env) <- pdata_chr8$Subject_ID[match(colnames(env),rownames(pdata_chr8))]
 
-cov <- pdata_chr8[,colnames(pdata_chr8) %in% c("Subject_ID","PC1","PC2","PC3","PC4","PC5","PC6","PC7","PC8","PC9","PC10",
-                 "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov <- pdata_chr8[,colnames(pdata_chr8) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
+"PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
 cov[cov=="dry"] <- 1
 cov[cov=="rainy"] <- 2
-cov <- cov[-2,]
 
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
+cov <- cov[,match(pdata_chr8$Subject_ID,colnames(cov))]
 dim(cov)
+
+#create combined cov file
+cov_env <- rbind(cov[-2,],cov[2,])
+
+#remove mastergroup from cov
+cov <- cov[-2,]
 
 cov_num <- sapply(cov[,], as.numeric)
 rownames(cov_num) <- rownames(cov)
 
+cov_env_num <- sapply(cov_env[,], as.numeric)
+rownames(cov_env_num) <- rownames(cov_env)
+
 env_num <- t(as.data.frame(sapply(env[,,drop=F], as.numeric)))
 rownames(env_num) <- rownames(env)
 colnames(env_num) <- colnames(env)
+
+dim(cov_num)
+dim(env_num)
+dim(cov_env_num)
+all.equal(colnames(cov_num),as.character(pdata_chr8$Subject_ID))
+all.equal(colnames(cov_num),colnames(GMB_SNPs_chr8))
+all.equal(colnames(cov_num),colnames(GMB_CpGs_chr8))
+all.equal(colnames(cov_num),colnames(env_num))
+all.equal(colnames(env_num),as.character(pdata_chr8$Subject_ID))
+all.equal(colnames(env_num),colnames(GMB_SNPs_chr8))
+all.equal(colnames(env_num),colnames(GMB_CpGs_chr8))
+all.equal(colnames(cov_env_num),colnames(cov_num))
 
 #save as text files
 write.table(GMB_SNPs_chr8,"../data/GMB_SNPs_chr8.txt",sep="\t")
 write.table(GMB_CpGs_chr8,"../data/GMB_CpGs_chr8.txt",sep="\t")
 write.table(env_num,"../data/GMB_env_chr8.txt",sep="\t")
 write.table(cov_num,"../data/GMB_cov_chr8.txt",sep="\t")
-write.table(rbind(cov_num,env_num),"../data/GMB_gxe_chr8.txt",sep="\t")
-
-
+write.table(cov_env_num,"../data/GMB_gxe_chr8.txt",sep="\t")
 
 #run GEM models
-
 GEM_Gmodel("../data/GMB_SNPs_chr8.txt",
 			"../data/GMB_cov_chr8.txt",
 			"../data/GMB_CpGs_chr8.txt",1e-04,
@@ -592,4 +532,4 @@ GEM_GxEmodel("../data/GMB_SNPs_chr8.txt",
 			"../data/GMB_gxe_chr8.txt",
 			"../data/GMB_CpGs_chr8.txt", 1,
 			 "../results/GEM/Result_GEmodel_chr8_imputed.txt",
-			  topKplot = 1, savePlot=T)
+			  topKplot = 1, savePlot=F)
