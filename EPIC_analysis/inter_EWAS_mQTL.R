@@ -49,9 +49,8 @@ summary_table <- apply(GMB_SNPs[,-1],1,function(x){summary(as.factor(x))})
 summary_table <- ldply(summary_table,function(s){t(data.frame(unlist(s)))})
 summary_table_fil <- summary_table[!(summary_table$`NA's` > 30),]
 summary_table_fil$SNP <- rownames(GMB_SNPs)
-summary_table_fil <- summary_table_fil[,match(c("SNP","0",
-                                                "1","2","NA's"),
-                                              colnames(summary_table_fil))]
+summary_table_fil <- summary_table_fil[,match(c("SNP","0", "1","2","NA's"),
+                                        colnames(summary_table_fil))]
 ##########################
 #reshape GSA data for GEM
 ###########################
@@ -82,7 +81,8 @@ colnames(GMB_SNPs) <- GSA_sample_sheet$Sample.ID[
 ############################
 #replace arrays with sample IDs for EPIC array
 GMB_CpGs <- GMB_CpGs[,match(rownames(pdata),colnames(GMB_CpGs))]
-colnames(GMB_CpGs) <- pdata$Subject_ID[colnames(GMB_CpGs) == rownames(pdata)]
+all(colnames(GMB_CpGs) == rownames(pdata))
+colnames(GMB_CpGs) <- pdata$Subject_ID
 GMB_CpGs <- as.data.frame(GMB_CpGs)
 
 #dont need to do - add ID column and move to 1
@@ -105,10 +105,6 @@ all(colnames(GMB_SNPs) == pdata$Subject_ID)
 all(colnames(GMB_CpGs) == pdata$Subject_ID)
 dim(pdata)
 
-#try with just ESM1
-#ESM1_DMR <- res_DMPs_pcs[res_DMPs_pcs$Name %in% DMRs_CpGs,13,drop=F]
-#ESM1_DMR <- ESM1_DMR[grep("ESM1",ESM1_DMR$GencodeCompV12_NAME),,drop=F]
-#GMB_CpGs <- GMB_CpGs[rownames(GMB_CpGs) %in% rownames(ESM1_DMR),]
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 # run GEM mQTL analysis
 #^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -121,21 +117,21 @@ rownames(env)
 cov <- pdata[,colnames(pdata) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
 "PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age",
 "MooreSoC","MasterGroupNo"),drop=F]
+cov$MooreSoC <- recode(cov$MooreSoC,dry="1",rainy="2")
+cov$MooreSoC <- relevel(cov$MooreSoC,"1")
 
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
-cov[cov=="dry"] <- 1
-cov[cov=="rainy"] <- 2
-
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
 cov <- cov[,match(pdata$Subject_ID,colnames(cov))]
 dim(cov)
 
 #create combined cov file
-cov_env <- rbind(cov[-2,],cov[2,])
+cov_env <- rbind(cov[rownames(cov) != "MasterGroupNo",],
+                 cov[rownames(cov) == "MasterGroupNo",])
 
 #remove mastergroup from cov
-cov <- cov[-2,]
+cov <- cov[rownames(cov) != "MasterGroupNo",]
 
 #convert to numeric
 cov_num <- sapply(cov[,], as.numeric)
@@ -410,21 +406,21 @@ rownames(env)
 cov <- pdata_chr5[,colnames(pdata_chr5) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
                  "PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age",
                  "MooreSoC","MasterGroupNo"),drop=F]
+cov$MooreSoC <- recode(cov$MooreSoC,dry="1",rainy="2")
+cov$MooreSoC <- relevel(cov$MooreSoC,"1")
 
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
-cov[cov=="dry"] <- 1
-cov[cov=="rainy"] <- 2
-
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
 cov <- cov[,match(pdata_chr5$Subject_ID,colnames(cov))]
 dim(cov)
 
 #create combined cov file
-cov_env <- rbind(cov[-2,],cov[2,])
+cov_env <- rbind(cov[rownames(cov) != "MasterGroupNo",],
+                 cov[rownames(cov) == "MasterGroupNo",])
 
 #remove mastergroup from cov
-cov <- cov[-2,]
+cov <- cov[rownames(cov) != "MasterGroupNo",]
 
 cov_num <- sapply(cov[,], as.numeric)
 rownames(cov_num) <- rownames(cov)
@@ -523,21 +519,21 @@ rownames(env)
 
 cov <- pdata_chr8[,colnames(pdata_chr8) %in% c("Subject_ID","PC1","PC2","PC3","PC4",
 "PC5","PC6","PC7","PC8","PC9","PC10", "PC11","PC12","PC13","PC15","Age","MooreSoC","MasterGroupNo"),drop=F]
+cov$MooreSoC <- recode(cov$MooreSoC,dry="1",rainy="2")
+cov$MooreSoC <- relevel(cov$MooreSoC,"1")
 
 cov <- dcast(melt(cov, id.var = "Subject_ID"), ... ~ Subject_ID )
-cov[cov=="dry"] <- 1
-cov[cov=="rainy"] <- 2
-
 rownames(cov) <- cov$variable
 cov <- cov[,-1]
 cov <- cov[,match(pdata_chr8$Subject_ID,colnames(cov))]
 dim(cov)
 
 #create combined cov file
-cov_env <- rbind(cov[-2,],cov[2,])
+cov_env <- rbind(cov[rownames(cov) != "MasterGroupNo",],
+                 cov[rownames(cov) == "MasterGroupNo",])
 
 #remove mastergroup from cov
-cov <- cov[-2,]
+cov <- cov[rownames(cov) != "MasterGroupNo",]
 
 cov_num <- sapply(cov[,], as.numeric)
 rownames(cov_num) <- rownames(cov)
